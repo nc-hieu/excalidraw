@@ -143,6 +143,11 @@ import DebugCanvas, {
 import { useSimulatedCollaborators } from "./debugCollaborators";
 import { AIComponents } from "./components/AI";
 import { ExcalidrawPlusIframeExport } from "./ExcalidrawPlusIframeExport";
+import {
+  useDocumentsManager,
+  PageBar,
+  DocumentManagerModal,
+} from "./components/MultiPageManager";
 
 import "./index.scss";
 
@@ -374,6 +379,13 @@ const initializeScene = async (opts: {
 
 const ExcalidrawWrapper = () => {
   const excalidrawAPI = useExcalidrawAPI();
+  const docManager = useDocumentsManager(excalidrawAPI);
+
+  // Stable ref so onChange useCallback below doesn't need docManager in its
+  // dependency array – avoids an infinite re-render loop caused by docManager
+  // getting a new object reference on every render.
+  const handleSceneChangeRef = useRef(docManager.handleSceneChange);
+  handleSceneChangeRef.current = docManager.handleSceneChange;
 
   const [errorMessage, setErrorMessage] = useState("");
   const isCollabDisabled = isRunningInIframe();
@@ -712,57 +724,66 @@ const ExcalidrawWrapper = () => {
     };
   }, [excalidrawAPI]);
 
-  const onChange = (
-    elements: readonly OrderedExcalidrawElement[],
-    appState: AppState,
-    files: BinaryFiles,
-  ) => {
-    if (collabAPI?.isCollaborating()) {
-      collabAPI.syncElements(elements);
-    }
+  const onChange = useCallback(
+    (
+      elements: readonly OrderedExcalidrawElement[],
+      appState: AppState,
+      files: BinaryFiles,
+    ) => {
+      if (collabAPI?.isCollaborating()) {
+        collabAPI.syncElements(elements);
+      }
 
-    // this check is redundant, but since this is a hot path, it's best
-    // not to evaludate the nested expression every time
-    if (!LocalData.isSavePaused()) {
-      LocalData.save(elements, appState, files, () => {
-        if (excalidrawAPI) {
-          let didChange = false;
+      // Use ref so this callback doesn't need docManager in its dep array.
+      handleSceneChangeRef.current(elements, appState, files);
 
-          const elements = excalidrawAPI
-            .getSceneElementsIncludingDeleted()
-            .map((element) => {
-              if (
-                LocalData.fileStorage.shouldUpdateImageElementStatus(element)
-              ) {
-                const newElement = newElementWith(element, { status: "saved" });
-                if (newElement !== element) {
-                  didChange = true;
+      // this check is redundant, but since this is a hot path, it's best
+      // not to evaludate the nested expression every time
+      if (!LocalData.isSavePaused()) {
+        LocalData.save(elements, appState, files, () => {
+          if (excalidrawAPI) {
+            let didChange = false;
+
+            const elements = excalidrawAPI
+              .getSceneElementsIncludingDeleted()
+              .map((element) => {
+                if (
+                  LocalData.fileStorage.shouldUpdateImageElementStatus(element)
+                ) {
+                  const newElement = newElementWith(element, {
+                    status: "saved",
+                  });
+                  if (newElement !== element) {
+                    didChange = true;
+                  }
+                  return newElement;
                 }
-                return newElement;
-              }
-              return element;
-            });
+                return element;
+              });
 
-          if (didChange) {
-            excalidrawAPI.updateScene({
-              elements,
-              captureUpdate: CaptureUpdateAction.NEVER,
-            });
+            if (didChange) {
+              excalidrawAPI.updateScene({
+                elements,
+                captureUpdate: CaptureUpdateAction.NEVER,
+              });
+            }
           }
-        }
-      });
-    }
+        });
+      }
 
-    // Render the debug scene if the debug canvas is available
-    if (debugCanvasRef.current && excalidrawAPI) {
-      debugRenderer(
-        debugCanvasRef.current,
-        appState,
-        elements,
-        window.devicePixelRatio,
-      );
-    }
-  };
+      // Render the debug scene if the debug canvas is available
+      if (debugCanvasRef.current && excalidrawAPI) {
+        debugRenderer(
+          debugCanvasRef.current,
+          appState,
+          elements,
+          window.devicePixelRatio,
+        );
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [collabAPI, excalidrawAPI],
+  );
 
   const [latestShareableLink, setLatestShareableLink] = useState<string | null>(
     null,
@@ -1297,6 +1318,8 @@ const ExcalidrawWrapper = () => {
           />
         )}
       </Excalidraw>
+      <PageBar manager={docManager} />
+      <DocumentManagerModal manager={docManager} />
     </div>
   );
 };
