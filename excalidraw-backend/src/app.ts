@@ -19,7 +19,6 @@ export const buildApp = async () => {
 
   await app.register(cors, {
     origin: (origin, cb) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return cb(null, true);
       if (
         corsOrigins.includes(origin) ||

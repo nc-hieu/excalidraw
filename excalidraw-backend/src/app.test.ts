@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import fp from "fastify-plugin";
 
-// Use vi.hoisted so variables are available inside vi.mock factory
 const { mockPrisma, mockUser, mockDocument } = vi.hoisted(() => {
   const user = {
     id: "user-123",
@@ -70,7 +69,6 @@ vi.mock("./plugins/prisma.js", () => {
   };
 });
 
-// Import buildApp after mocking
 import { buildApp } from "./app.js";
 
 describe("Excalidraw Backend API Suite", () => {

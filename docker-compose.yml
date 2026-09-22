@@ -1,4 +1,42 @@
 services:
+  # 1. Database: PostgreSQL 16 (mở cổng 5432:5432 cho DBeaver/pgAdmin)
+  db:
+    image: postgres:16-alpine
+    container_name: excalidraw-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: excalidraw
+      POSTGRES_PASSWORD: secret_password
+      POSTGRES_DB: excalidraw_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U excalidraw -d excalidraw_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # 2. Backend API: Node.js Fastify + Prisma (mở cổng 4000:4000)
+  api:
+    build:
+      context: ./excalidraw-backend
+    container_name: excalidraw-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://excalidraw:secret_password@db:5432/excalidraw_db?schema=public
+      JWT_SECRET: excalidraw_super_secret_jwt_key_2026
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3003
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 3. Frontend Web: Nginx gốc Excalidraw (giữ nguyên bản gốc 100%, cổng 3003:80)
   excalidraw:
     build:
       context: .
@@ -20,4 +58,5 @@ services:
       - notused:/opt/node_app/app/node_modules
 
 volumes:
+  postgres_data:
   notused:
