@@ -48,7 +48,7 @@ export const AppMainMenu: React.FC<{
   return (
     <MainMenu>
       <MainMenu.Item icon={FolderIcon} onSelect={() => setIsDocModalOpen(true)}>
-        Danh sách bản vẽ
+        Drawings
       </MainMenu.Item>
       <MainMenu.DefaultItems.LoadScene />
       <MainMenu.DefaultItems.SaveToActiveFile />

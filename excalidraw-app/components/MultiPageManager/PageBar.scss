@@ -15,7 +15,7 @@
   max-width: calc(100vw - 340px);
   overflow: visible;
   user-select: none;
-  font-family: inherit;
+  font-family: var(--ui-font, Assistant, system-ui, sans-serif);
   font-size: 0.85rem;
   color: var(--text-primary-color, #1b1b1f);
 
@@ -167,6 +167,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    font-family: var(--ui-font, Assistant, system-ui, sans-serif);
     animation: excalidrawDropdownFadeIn 0.15s ease-out;
 
     &__item {
@@ -180,6 +181,7 @@
       cursor: pointer;
       font-size: 0.825rem;
       text-align: left;
+      font-family: inherit;
       color: var(--text-primary-color, #333);
       width: 100%;
       transition: background 0.1s ease;
@@ -226,6 +228,7 @@
     flex-direction: column;
     gap: 14px;
     outline: none;
+    font-family: var(--ui-font, Assistant, system-ui, sans-serif);
 
     &__header {
       display: flex;

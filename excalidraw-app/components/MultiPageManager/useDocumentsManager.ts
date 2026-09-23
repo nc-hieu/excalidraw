@@ -256,7 +256,7 @@ export const useDocumentsManager = (
     const forkedDoc: ExcalidrawDocument = {
       ...current,
       id: newDocId,
-      name: `${current.name} (Bản sao)`,
+      name: `${current.name} (Copy)`,
       activePageId: forkedPages[0]?.id || generateId(),
       pages: forkedPages,
       createdAt: Date.now(),
@@ -505,7 +505,7 @@ export const useDocumentsManager = (
         },
       );
 
-      const newPage = createNewPage(name || `Trang ${updatedPages.length + 1}`);
+      const newPage = createNewPage(name || `Page ${updatedPages.length + 1}`);
       const newDoc: ExcalidrawDocument = {
         ...doc,
         pages: [...updatedPages, newPage],
@@ -600,7 +600,7 @@ export const useDocumentsManager = (
 
       const newPage: ExcalidrawPage = {
         id: generateId(),
-        name: `${targetPage.name} (Bản sao)`,
+        name: `${targetPage.name} (Copy)`,
         elements: duplicatedElements,
         appState: { ...appStateToCopy },
         files: filesToCopy ? { ...filesToCopy } : {},
@@ -862,7 +862,7 @@ export const useDocumentsManager = (
       }
 
       const list = await getAllDocumentsMetadata();
-      const docName = name || `Bản vẽ ${list.length + 1}`;
+      const docName = name || `Drawing ${list.length + 1}`;
       const newDoc = createDefaultDocument(docName);
 
       await saveDocument(newDoc);
@@ -967,7 +967,7 @@ export const useDocumentsManager = (
 
       const clonedDoc: ExcalidrawDocument = {
         id: newDocId,
-        name: `${sourceDoc.name} (Bản sao)`,
+        name: `${sourceDoc.name} (Copy)`,
         pages: clonedPages,
         activePageId: clonedPages[0].id,
         createdAt: Date.now(),
@@ -995,7 +995,7 @@ export const useDocumentsManager = (
         if (remaining.length > 0) {
           await switchDocument(remaining[0].id);
         } else {
-          const fallback = createDefaultDocument("Bản vẽ 1");
+          const fallback = createDefaultDocument("Drawing 1");
           await saveDocument(fallback);
           await setActiveDocumentId(fallback.id);
           currentDocRef.current = fallback;

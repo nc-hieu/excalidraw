@@ -14,7 +14,7 @@ const { mockPrisma, mockUser, mockDocument } = vi.hoisted(() => {
   const doc = {
     id: "doc-123",
     userId: "user-123",
-    name: "Bản vẽ 1",
+    name: "Drawing 1",
     activePageId: "page-1",
     shareToken: null,
     shareMode: "private",
@@ -25,7 +25,7 @@ const { mockPrisma, mockUser, mockDocument } = vi.hoisted(() => {
       {
         id: "page-1",
         documentId: "doc-123",
-        name: "Trang 1",
+        name: "Page 1",
         elements: [],
         appState: {},
         files: {},
@@ -174,7 +174,7 @@ describe("Excalidraw Backend API Suite", () => {
       expect(res.statusCode).toBe(200);
       const json = JSON.parse(res.payload);
       expect(json.documents).toHaveLength(1);
-      expect(json.documents[0].name).toBe("Bản vẽ 1");
+      expect(json.documents[0].name).toBe("Drawing 1");
     });
 
     it("should create a document for authenticated user", async () => {
@@ -187,12 +187,12 @@ describe("Excalidraw Backend API Suite", () => {
         headers: {
           authorization: `Bearer ${token}`,
         },
-        payload: { name: "Bản vẽ mới" },
+        payload: { name: "New drawing" },
       });
 
       expect(res.statusCode).toBe(201);
       const json = JSON.parse(res.payload);
-      expect(json.document.name).toBe("Bản vẽ 1");
+      expect(json.document.name).toBe("Drawing 1");
     });
 
     it("should sync existing document snapshot atomically", async () => {
@@ -207,12 +207,12 @@ describe("Excalidraw Backend API Suite", () => {
           authorization: `Bearer ${token}`,
         },
         payload: {
-          name: "Bản vẽ 1",
+          name: "Drawing 1",
           activePageId: "page-1",
           pages: [
             {
               id: "page-1",
-              name: "Trang 1",
+              name: "Page 1",
               elements: [{ id: "el1", type: "rectangle" }],
               appState: { zoom: { value: 1 } },
             },
@@ -222,7 +222,7 @@ describe("Excalidraw Backend API Suite", () => {
 
       expect(res.statusCode).toBe(200);
       const json = JSON.parse(res.payload);
-      expect(json.message).toContain("thành công");
+      expect(json.message).toContain("successfully");
     });
 
     it("should auto-upsert and create new document when syncing local-first document ID", async () => {
@@ -240,12 +240,12 @@ describe("Excalidraw Backend API Suite", () => {
           authorization: `Bearer ${token}`,
         },
         payload: {
-          name: "Bản vẽ Local",
+          name: "Local Drawing",
           activePageId: "page-local-1",
           pages: [
             {
               id: "page-local-1",
-              name: "Trang 1",
+              name: "Page 1",
               elements: [],
             },
           ],
@@ -254,7 +254,7 @@ describe("Excalidraw Backend API Suite", () => {
 
       expect(res.statusCode).toBe(200);
       const json = JSON.parse(res.payload);
-      expect(json.message).toContain("thành công");
+      expect(json.message).toContain("successfully");
       expect(mockPrisma.document.create).toHaveBeenCalled();
     });
   });

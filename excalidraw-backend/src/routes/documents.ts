@@ -42,12 +42,12 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     const document = await fastify.prisma.document.create({
       data: {
         userId: request.user.userId,
-        name: name?.trim() || "Bản vẽ 1",
+        name: name?.trim() || "Drawing 1",
         activePageId: defaultPageId,
         pages: {
           create: {
             id: defaultPageId,
-            name: "Trang 1",
+            name: "Page 1",
             elements: [],
             appState: {},
             files: {},
@@ -61,7 +61,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.code(201).send({
-      message: "Tạo bản vẽ thành công",
+      message: "Drawing created successfully",
       document,
     });
   });
@@ -85,7 +85,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     if (!document) {
       return reply.code(404).send({
         error: "Not Found",
-        message: "Không tìm thấy bản vẽ",
+        message: "Drawing not found",
       });
     }
 
@@ -106,7 +106,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       if (!existing) {
         return reply.code(404).send({
           error: "Not Found",
-          message: "Không tìm thấy bản vẽ",
+          message: "Drawing not found",
         });
       }
 
@@ -119,7 +119,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send({
-        message: "Cập nhật bản vẽ thành công",
+        message: "Drawing updated successfully",
         document: updated,
       });
     },
@@ -135,7 +135,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       if (!Array.isArray(pages) || pages.length === 0) {
         return reply.code(400).send({
           error: "Bad Request",
-          message: "Danh sách trang (pages) không được để trống",
+          message: "Pages list cannot be empty",
         });
       }
 
@@ -146,7 +146,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       if (existing && existing.userId !== request.user.userId) {
         return reply.code(403).send({
           error: "Forbidden",
-          message: "Bạn không có quyền chỉnh sửa bản vẽ này",
+          message: "You do not have permission to edit this drawing",
         });
       }
 
@@ -160,7 +160,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
             data: {
               id,
               userId: request.user.userId,
-              name: name?.trim() || "Bản vẽ 1",
+              name: name?.trim() || "Drawing 1",
               activePageId: activePageId || pages[0]?.id || "page_1",
             },
           });
@@ -197,7 +197,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
             create: {
               id: p.id,
               documentId: id,
-              name: p.name || `Trang ${i + 1}`,
+              name: p.name || `Page ${i + 1}`,
               elements: p.elements || [],
               appState: p.appState || {},
               files: p.files || {},
@@ -226,7 +226,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send({
-        message: "Đồng bộ bản vẽ thành công",
+        message: "Drawing synced successfully",
         document: syncedDocument,
       });
     },
@@ -243,7 +243,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     if (!existing) {
       return reply.code(404).send({
         error: "Not Found",
-        message: "Không tìm thấy bản vẽ",
+        message: "Drawing not found",
       });
     }
 
@@ -252,7 +252,7 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.send({
-      message: "Xóa bản vẽ thành công",
+      message: "Drawing deleted successfully",
       id,
     });
   });

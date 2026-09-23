@@ -177,10 +177,10 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
 
   const syncTitle =
     syncStatus === "synced"
-      ? "Đã đồng bộ lên Cloud an toàn"
+      ? "Cloud synced securely"
       : syncStatus === "syncing"
-      ? "Đang lưu lên Cloud..."
-      : "Chế độ ngoại tuyến (lưu trên máy)";
+      ? "Saving to Cloud..."
+      : "Offline mode (saved locally)";
 
   return (
     <div ref={containerRef} className="excalidraw-user-badge-container">
@@ -206,7 +206,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
         <button
           type="button"
           className="excalidraw-auth-btn"
-          title={`Tài khoản: ${currentUser.email}`}
+          title={`Account: ${currentUser.email}`}
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
           <div className="excalidraw-auth-btn__avatar">
@@ -220,11 +220,11 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
         <button
           type="button"
           className="excalidraw-auth-btn"
-          title="Đăng nhập để đồng bộ bản vẽ đa thiết bị"
+          title="Sign in to sync drawings across devices"
           onClick={() => setIsAuthModalOpen(true)}
         >
           <UserIcon />
-          <span>Đăng nhập</span>
+          <span>Sign in</span>
         </button>
       )}
 
@@ -233,7 +233,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
         <div className="user-badge-dropdown">
           <div className="user-badge-dropdown__header">
             <span className="user-badge-dropdown__user-name">
-              {currentUser.name || "Người dùng"}
+              {currentUser.name || "User"}
             </span>
             <span className="user-badge-dropdown__user-email">
               {currentUser.email}
@@ -252,7 +252,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
               }}
             >
               <RefreshIcon />
-              <span>Đồng bộ ngay</span>
+              <span>Sync now</span>
             </button>
           )}
 
@@ -262,7 +262,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
             onClick={handleLogout}
           >
             <LogoutIcon />
-            <span>Đăng xuất</span>
+            <span>Sign out</span>
           </button>
         </div>
       )}
@@ -280,12 +280,12 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
             onKeyUp={(e) => e.stopPropagation()}
           >
             <h3 className="merge-prompt-dialog__title">
-              Đồng bộ bản vẽ vào tài khoản
+              Sync drawings to your account
             </h3>
             <p className="merge-prompt-dialog__desc">
-              Phát hiện {mergePrompt.localDocCount} bản vẽ đang lưu trên thiết
-              bị này. Bạn có muốn tải toàn bộ các bản vẽ này lên tài khoản Cloud
-              để truy cập từ các thiết bị khác không?
+              Found {mergePrompt.localDocCount} drawings stored on this device.
+              Would you like to upload all drawings to your Cloud account to
+              access them from other devices?
             </p>
             <div className="merge-prompt-dialog__actions">
               <button
@@ -298,7 +298,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
                   }
                 }}
               >
-                Bỏ qua
+                Skip
               </button>
               <button
                 type="button"
@@ -310,7 +310,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
                   }
                 }}
               >
-                Đồng bộ lên Cloud
+                Sync to Cloud
               </button>
             </div>
           </div>
@@ -330,10 +330,10 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
             onKeyUp={(e) => e.stopPropagation()}
           >
             <h3 className="merge-prompt-dialog__title">
-              Xung đột quyền sở hữu bản vẽ
+              Drawing Ownership Conflict
             </h3>
             <p className="merge-prompt-dialog__desc">
-              Bản vẽ <strong>"{conflictPrompt.docName}"</strong> này thuộc quyền sở hữu của một tài khoản khác trên máy chủ. Bạn có muốn tạo bản sao (Fork) vào tài khoản của bạn để tiếp tục chỉnh sửa và đồng bộ không?
+              Drawing <strong>"{conflictPrompt.docName}"</strong> belongs to another account on the server. Would you like to create a copy (Fork) into your account to continue editing and syncing?
             </p>
             <div className="merge-prompt-dialog__actions">
               <button
@@ -346,7 +346,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
                   }
                 }}
               >
-                Xóa dữ liệu cũ & Làm mới
+                Reset & Clear local copy
               </button>
               <button
                 type="button"
@@ -358,7 +358,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
                   }
                 }}
               >
-                Tạo bản sao (Fork)
+                Create a copy (Fork)
               </button>
             </div>
           </div>

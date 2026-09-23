@@ -50,7 +50,7 @@ export const generateId = (): string => {
 };
 
 export const createDefaultDocument = (
-  name = "Bản vẽ 1",
+  name = "Drawing 1",
 ): ExcalidrawDocument => {
   const pageId = generateId();
   const docId = generateId();
@@ -61,7 +61,7 @@ export const createDefaultDocument = (
     pages: [
       {
         id: pageId,
-        name: "Trang 1",
+        name: "Page 1",
         elements: [],
         appState: {},
         files: {},
@@ -197,11 +197,11 @@ export const initDocuments = async (): Promise<{
       const docId = generateId();
       initialDoc = {
         id: docId,
-        name: "Bản vẽ 1",
+        name: "Drawing 1",
         pages: [
           {
             id: pageId,
-            name: "Trang 1",
+            name: "Page 1",
             elements: local.elements,
             appState: local.appState || {},
             files: {},
@@ -214,7 +214,7 @@ export const initDocuments = async (): Promise<{
         updatedAt: now,
       };
     } else {
-      initialDoc = createDefaultDocument("Bản vẽ 1");
+      initialDoc = createDefaultDocument("Drawing 1");
     }
 
     await saveDocument(initialDoc);
@@ -222,7 +222,7 @@ export const initDocuments = async (): Promise<{
     return { activeDoc: initialDoc, isInitialMigration: true };
   } catch (error) {
     console.error("Error during documents initialization:", error);
-    const fallbackDoc = createDefaultDocument("Bản vẽ 1");
+    const fallbackDoc = createDefaultDocument("Drawing 1");
     return { activeDoc: fallbackDoc, isInitialMigration: false };
   }
 };

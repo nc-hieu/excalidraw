@@ -1,5 +1,12 @@
 @import "../packages/excalidraw/css/variables.module.scss";
 
+:root,
+body {
+  --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--ui-font);
+}
+
 .excalidraw {
   --color-primary-contrast-offset: #625ee0; // to offset Chubb illusion
 

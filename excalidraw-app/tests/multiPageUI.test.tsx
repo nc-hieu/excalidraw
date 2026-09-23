@@ -10,11 +10,11 @@ import type { ExcalidrawDocument } from "../data/documentsDB";
 describe("MultiPage UI Components", () => {
   const mockDoc: ExcalidrawDocument = {
     id: "doc-1",
-    name: "Sơ đồ kiến trúc",
+    name: "Architecture Diagram",
     pages: [
       {
         id: "p-1",
-        name: "Trang 1",
+        name: "Page 1",
         elements: [],
         appState: {},
         files: {},
@@ -23,7 +23,7 @@ describe("MultiPage UI Components", () => {
       },
       {
         id: "p-2",
-        name: "Trang 2",
+        name: "Page 2",
         elements: [],
         appState: {},
         files: {},
@@ -41,14 +41,14 @@ describe("MultiPage UI Components", () => {
     docsList: [
       {
         id: "doc-1",
-        name: "Sơ đồ kiến trúc",
+        name: "Architecture Diagram",
         pageCount: 2,
         createdAt: 1000,
         updatedAt: 2000,
       },
       {
         id: "doc-2",
-        name: "Bản nháp UI",
+        name: "UI Draft",
         pageCount: 1,
         createdAt: 500,
         updatedAt: 500,
@@ -76,9 +76,9 @@ describe("MultiPage UI Components", () => {
     const manager = createMockManager();
     const { container } = render(<PageBar manager={manager as any} />);
 
-    expect(screen.getByText("Sơ đồ kiến trúc")).toBeDefined();
-    expect(screen.getByText("Trang 1")).toBeDefined();
-    expect(screen.getByText("Trang 2")).toBeDefined();
+    expect(screen.getByText("Architecture Diagram")).toBeDefined();
+    expect(screen.getByText("Page 1")).toBeDefined();
+    expect(screen.getByText("Page 2")).toBeDefined();
     expect(container.querySelector(".excalidraw-page-bar")).not.toBeNull();
   });
 
@@ -86,7 +86,7 @@ describe("MultiPage UI Components", () => {
     const manager = createMockManager();
     render(<PageBar manager={manager as any} />);
 
-    const addBtn = screen.getByTitle("Thêm trang mới");
+    const addBtn = screen.getByTitle("Add new page");
     fireEvent.click(addBtn);
     expect(manager.addPage).toHaveBeenCalledTimes(1);
   });
@@ -95,7 +95,7 @@ describe("MultiPage UI Components", () => {
     const manager = createMockManager();
     render(<PageBar manager={manager as any} />);
 
-    const page2Tab = screen.getByText("Trang 2");
+    const page2Tab = screen.getByText("Page 2");
     fireEvent.click(page2Tab);
     expect(manager.switchPage).toHaveBeenCalledWith("p-2");
   });
@@ -104,59 +104,59 @@ describe("MultiPage UI Components", () => {
     const manager = createMockManager();
     render(<PageBar manager={manager as any} />);
 
-    const menuBtns = screen.getAllByTitle("Tùy chọn trang");
+    const menuBtns = screen.getAllByTitle("Page options");
     expect(menuBtns.length).toBe(2);
 
     // Click 3 dots on the first page
     fireEvent.click(menuBtns[0]);
 
-    expect(screen.getByText("Đổi tên trang")).toBeDefined();
-    expect(screen.getByText("Nhân bản trang")).toBeDefined();
-    expect(screen.getByText("Chuyển sang phải")).toBeDefined();
-    expect(screen.getByText("Xóa trang")).toBeDefined();
+    expect(screen.getByText("Rename page")).toBeDefined();
+    expect(screen.getByText("Duplicate page")).toBeDefined();
+    expect(screen.getByText("Move right")).toBeDefined();
+    expect(screen.getByText("Delete page")).toBeDefined();
   });
 
   it("should prompt confirmation modal when clicking delete page and call deletePage on confirm", () => {
     const manager = createMockManager();
     render(<PageBar manager={manager as any} />);
 
-    const menuBtns = screen.getAllByTitle("Tùy chọn trang");
+    const menuBtns = screen.getAllByTitle("Page options");
     fireEvent.click(menuBtns[1]); // Page 2
 
-    const deleteBtn = screen.getByText("Xóa trang");
+    const deleteBtn = screen.getByText("Delete page");
     fireEvent.click(deleteBtn);
 
     // Modal should be visible
-    expect(screen.getByText("Xác nhận xóa trang")).toBeDefined();
+    expect(screen.getByText("Delete page", { selector: "h3" })).toBeDefined();
     expect(
-      screen.getByText(/Bạn có chắc chắn muốn xóa trang/),
+      screen.getByText(/Are you sure you want to delete page/),
     ).toBeDefined();
 
     // Click confirm delete
-    const confirmBtn = screen.getByText("Xác nhận xóa");
+    const confirmBtn = screen.getByText("Delete", { selector: "button" });
     fireEvent.click(confirmBtn);
 
     expect(manager.deletePage).toHaveBeenCalledWith("p-2");
-    expect(screen.queryByText("Xác nhận xóa trang")).toBeNull();
+    expect(screen.queryByText("Delete page", { selector: "h3" })).toBeNull();
   });
 
   it("should close delete modal without deleting when clicking cancel", () => {
     const manager = createMockManager();
     render(<PageBar manager={manager as any} />);
 
-    const menuBtns = screen.getAllByTitle("Tùy chọn trang");
+    const menuBtns = screen.getAllByTitle("Page options");
     fireEvent.click(menuBtns[0]);
 
-    const deleteBtn = screen.getByText("Xóa trang");
+    const deleteBtn = screen.getByText("Delete page");
     fireEvent.click(deleteBtn);
 
-    expect(screen.getByText("Xác nhận xóa trang")).toBeDefined();
+    expect(screen.getByText("Delete page", { selector: "h3" })).toBeDefined();
 
-    const cancelBtn = screen.getByText("Hủy bỏ");
+    const cancelBtn = screen.getByText("Cancel");
     fireEvent.click(cancelBtn);
 
     expect(manager.deletePage).not.toHaveBeenCalled();
-    expect(screen.queryByText("Xác nhận xóa trang")).toBeNull();
+    expect(screen.queryByText("Delete page", { selector: "h3" })).toBeNull();
   });
 
   it("should disable delete button when only 1 page remains", () => {
@@ -167,10 +167,10 @@ describe("MultiPage UI Components", () => {
     const manager = createMockManager({ currentDoc: singlePageDoc });
     render(<PageBar manager={manager as any} />);
 
-    const menuBtn = screen.getByTitle("Tùy chọn trang");
+    const menuBtn = screen.getByTitle("Page options");
     fireEvent.click(menuBtn);
 
-    const deleteBtn = screen.getByText("Xóa trang").closest("button");
+    const deleteBtn = screen.getByText("Delete page").closest("button");
     expect(deleteBtn?.hasAttribute("disabled")).toBe(true);
   });
 
@@ -178,13 +178,13 @@ describe("MultiPage UI Components", () => {
     const manager = createMockManager({ isDocModalOpen: true });
     render(<DocumentManagerModal manager={manager as any} />);
 
-    expect(screen.getByText("Quản lý Bản vẽ")).toBeDefined();
-    expect(screen.getByText("Bản nháp UI")).toBeDefined();
+    expect(screen.getByText("Drawings")).toBeDefined();
+    expect(screen.getByText("UI Draft")).toBeDefined();
 
-    const searchInput = screen.getByPlaceholderText("Tìm kiếm bản vẽ...");
-    fireEvent.change(searchInput, { target: { value: "kiến trúc" } });
+    const searchInput = screen.getByPlaceholderText("Search drawings...");
+    fireEvent.change(searchInput, { target: { value: "Architecture" } });
 
-    expect(screen.getByText("Sơ đồ kiến trúc")).toBeDefined();
-    expect(screen.queryByText("Bản nháp UI")).toBeNull();
+    expect(screen.getByText("Architecture Diagram")).toBeDefined();
+    expect(screen.queryByText("UI Draft")).toBeNull();
   });
 });

@@ -33,7 +33,7 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
   padding: 20px 24px;
   color: var(--text-primary-color, #1b1b1f);
-  font-family: inherit;
+  font-family: var(--ui-font, Assistant, system-ui, sans-serif);
   user-select: none;
   overflow: hidden;
 

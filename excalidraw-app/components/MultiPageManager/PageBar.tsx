@@ -231,13 +231,13 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
     <div
       ref={containerRef}
       className="excalidraw-page-bar"
-      aria-label="Quản lý trang và bản vẽ"
+      aria-label="Page & document management"
     >
       {/* Document Manager Trigger Button */}
       <button
         type="button"
         className="excalidraw-page-bar__doc-btn"
-        title="Mở danh sách quản lý bản vẽ"
+        title="Manage drawings"
         onClick={() => setIsDocModalOpen(true)}
       >
         <FolderIcon />
@@ -270,8 +270,8 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
               }}
               title={
                 isActive
-                  ? `Đang vẽ: ${page.name} (Click đúp để đổi tên)`
-                  : `Chuyển sang: ${page.name}`
+                  ? `Drawing: ${page.name} (Double-click to rename)`
+                  : `Switch to: ${page.name}`
               }
             >
               {isEditing ? (
@@ -295,7 +295,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
               <button
                 type="button"
                 className="excalidraw-page-bar__tab__menu-btn"
-                title="Tùy chọn trang"
+                title="Page options"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (isDropdownOpen) {
@@ -319,7 +319,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
       <button
         type="button"
         className="excalidraw-page-bar__add-btn"
-        title="Thêm trang mới"
+        title="Add new page"
         onClick={() => addPage()}
       >
         <PlusIcon />
@@ -353,7 +353,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
               }
             >
               <EditIcon />
-              <span>Đổi tên trang</span>
+              <span>Rename page</span>
             </button>
 
             <button
@@ -365,7 +365,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
               }}
             >
               <CopyIcon />
-              <span>Nhân bản trang</span>
+              <span>Duplicate page</span>
             </button>
 
             {dropdownState.index > 0 && (
@@ -378,7 +378,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                 }}
               >
                 <ArrowLeftIcon />
-                <span>Chuyển sang trái</span>
+                <span>Move left</span>
               </button>
             )}
 
@@ -392,7 +392,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                 }}
               >
                 <ArrowRightIcon />
-                <span>Chuyển sang phải</span>
+                <span>Move right</span>
               </button>
             )}
 
@@ -402,8 +402,8 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
               disabled={isOnlyPage}
               title={
                 isOnlyPage
-                  ? "Không thể xóa trang duy nhất trong bản vẽ"
-                  : "Xóa trang này"
+                  ? "Cannot delete the only page in the drawing"
+                  : "Delete this page"
               }
               onClick={() => {
                 if (!isOnlyPage) {
@@ -413,7 +413,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
               }}
             >
               <TrashIcon />
-              <span>Xóa trang</span>
+              <span>Delete page</span>
             </button>
           </div>,
           doc.body,
@@ -446,12 +446,12 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                 <div className="excalidraw-page-bar__confirm-modal__icon">
                   <TrashIcon />
                 </div>
-                <h3 id="delete-page-title">Xác nhận xóa trang</h3>
+                <h3 id="delete-page-title">Delete page</h3>
               </div>
               <p className="excalidraw-page-bar__confirm-modal__desc">
-                Bạn có chắc chắn muốn xóa trang{" "}
-                <strong>&quot;{pageToDelete.name}&quot;</strong> không? Thao tác
-                này sẽ xóa toàn bộ nội dung của trang và không thể hoàn tác.
+                Are you sure you want to delete page{" "}
+                <strong>&quot;{pageToDelete.name}&quot;</strong>? This action
+                will permanently remove all content on this page and cannot be undone.
               </p>
               <div className="excalidraw-page-bar__confirm-modal__actions">
                 <button
@@ -459,7 +459,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                   className="excalidraw-page-bar__confirm-modal__btn excalidraw-page-bar__confirm-modal__btn--cancel"
                   onClick={() => setPageToDelete(null)}
                 >
-                  Hủy bỏ
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -470,7 +470,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                     setPageToDelete(null);
                   }}
                 >
-                  Xác nhận xóa
+                  Delete
                 </button>
               </div>
             </div>

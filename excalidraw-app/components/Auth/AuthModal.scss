@@ -27,12 +27,18 @@
   max-width: 420px;
   background: var(--island-bg-color, #ffffff);
   color: var(--text-primary-color, #1b1b1f);
+  font-family: var(--ui-font, Assistant, system-ui, sans-serif);
   border-radius: 12px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--default-border-color, #e0e0e0);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+
+  button,
+  input {
+    font-family: inherit;
+  }
 
   &__header {
     display: flex;

@@ -100,12 +100,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError("Vui lòng nhập đầy đủ email và mật khẩu");
+      setError("Please enter your email and password");
       return;
     }
 
     if (tab === "register" && password.length < 6) {
-      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      setError("Password must be at least 6 characters");
       return;
     }
 
@@ -124,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         onSuccess(res.user);
       }
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi, vui lòng thử lại");
+      setError(err.message || "An error occurred, please try again");
     } finally {
       setLoading(false);
     }
@@ -138,7 +138,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       onKeyUp={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
-      aria-label={tab === "login" ? "Đăng nhập" : "Đăng ký tài khoản"}
+      aria-label={tab === "login" ? "Sign in" : "Sign up"}
     >
       <div
         ref={dialogRef}
@@ -149,12 +149,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       >
         <div className="auth-modal-dialog__header">
           <h2 className="auth-modal-dialog__title">
-            {tab === "login" ? "Đăng nhập tài khoản" : "Tạo tài khoản mới"}
+            {tab === "login" ? "Sign in" : "Create an account"}
           </h2>
           <button
             type="button"
             className="auth-modal-dialog__close-btn"
-            title="Đóng (Esc)"
+            title="Close (Esc)"
             onClick={() => setIsOpen(false)}
           >
             <CloseIcon />
@@ -172,7 +172,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               setError(null);
             }}
           >
-            Đăng nhập
+            Sign in
           </button>
           <button
             type="button"
@@ -184,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               setError(null);
             }}
           >
-            Đăng ký
+            Sign up
           </button>
         </div>
 
@@ -193,11 +193,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
           {tab === "register" && (
             <div className="auth-modal-dialog__field">
-              <label htmlFor="auth-name">Họ và tên</label>
+              <label htmlFor="auth-name">Full name</label>
               <input
                 id="auth-name"
                 type="text"
-                placeholder="Nguyễn Văn A"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
@@ -206,12 +206,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           )}
 
           <div className="auth-modal-dialog__field">
-            <label htmlFor="auth-email">Địa chỉ Email</label>
+            <label htmlFor="auth-email">Email address</label>
             <input
               ref={emailInputRef}
               id="auth-email"
               type="email"
-              placeholder="example@domain.com"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -220,7 +220,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           </div>
 
           <div className="auth-modal-dialog__field">
-            <label htmlFor="auth-password">Mật khẩu</label>
+            <label htmlFor="auth-password">Password</label>
             <input
               id="auth-password"
               type="password"
@@ -238,10 +238,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             disabled={loading}
           >
             {loading
-              ? "Đang xử lý..."
+              ? "Processing..."
               : tab === "login"
-              ? "Đăng nhập"
-              : "Đăng ký tài khoản"}
+              ? "Sign in"
+              : "Sign up"}
           </button>
         </form>
       </div>

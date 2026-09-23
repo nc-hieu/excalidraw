@@ -220,7 +220,7 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
       onClick={() => setIsDocModalOpen(false)}
       role="dialog"
       aria-modal="true"
-      aria-label="Quản lý Bản vẽ"
+      aria-label="Drawings"
     >
       <div
         ref={dialogRef}
@@ -230,12 +230,12 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
         <div className="document-manager-dialog__header">
           <h2 className="document-manager-dialog__title">
             <FolderIcon />
-            <span>Quản lý Bản vẽ</span>
+            <span>Drawings</span>
           </h2>
           <button
             type="button"
             className="document-manager-dialog__close-btn"
-            title="Đóng (Esc)"
+            title="Close (Esc)"
             onClick={() => setIsDocModalOpen(false)}
           >
             <CloseIcon />
@@ -247,7 +247,7 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
             <SearchIcon />
             <input
               type="text"
-              placeholder="Tìm kiếm bản vẽ..."
+              placeholder="Search drawings..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -259,14 +259,14 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
             onClick={handleCreateNew}
           >
             <PlusIcon />
-            <span>Tạo bản vẽ mới</span>
+            <span>New drawing</span>
           </button>
         </div>
 
         <div className="document-manager-dialog__list">
           {filteredDocs.length === 0 ? (
             <div className="document-manager-dialog__empty">
-              Không tìm thấy bản vẽ nào phù hợp
+              No drawings found
             </div>
           ) : (
             filteredDocs.map((doc) => {
@@ -311,17 +311,17 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
 
                       {isActive && (
                         <span className="document-manager-dialog__item__badge document-manager-dialog__item__badge--active">
-                          Đang mở
+                          Current
                         </span>
                       )}
 
                       <span className="document-manager-dialog__item__badge document-manager-dialog__item__badge--pages">
-                        {doc.pageCount} trang
+                        {doc.pageCount} {doc.pageCount === 1 ? "page" : "pages"}
                       </span>
                     </div>
 
                     <div className="document-manager-dialog__item__meta">
-                      Cập nhật: {formatDate(doc.updatedAt)}
+                      Updated: {formatDate(doc.updatedAt)}
                     </div>
                   </div>
 
@@ -332,14 +332,14 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
                         className="document-manager-dialog__item__btn document-manager-dialog__item__btn--primary"
                         onClick={() => handleSelectDoc(doc.id)}
                       >
-                        Mở
+                        Open
                       </button>
                     )}
 
                     <button
                       type="button"
                       className="document-manager-dialog__item__btn"
-                      title="Đổi tên bản vẽ"
+                      title="Rename drawing"
                       onClick={() => handleStartRename(doc.id, doc.name)}
                     >
                       <EditIcon />
@@ -348,7 +348,7 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
                     <button
                       type="button"
                       className="document-manager-dialog__item__btn"
-                      title="Nhân bản bản vẽ"
+                      title="Duplicate drawing"
                       onClick={() => duplicateDocument(doc.id)}
                     >
                       <CopyIcon />
@@ -357,14 +357,14 @@ export const DocumentManagerModal: React.FC<DocumentManagerModalProps> = ({
                     <button
                       type="button"
                       className="document-manager-dialog__item__btn document-manager-dialog__item__btn--danger"
-                      title="Xóa bản vẽ"
+                      title="Delete drawing"
                       onClick={() => {
                         const win =
                           dialogRef.current?.ownerDocument.defaultView ||
                           window;
                         if (
                           win.confirm(
-                            `Bạn có chắc chắn muốn xóa bản vẽ "${doc.name}"? Toàn bộ các trang trong bản vẽ này sẽ bị xóa.`,
+                            `Are you sure you want to delete drawing "${doc.name}"? All pages in this drawing will be permanently removed.`,
                           )
                         ) {
                           deleteDoc(doc.id);
