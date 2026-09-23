@@ -44,6 +44,28 @@ describe("@excalidraw/common/utils", () => {
     });
   });
 
+  describe("isWritableElement()", () => {
+    it("should recognize text, number, password, search, email, tel, and url inputs as writable", () => {
+      const types = ["text", "number", "password", "search", "email", "tel", "url"];
+      for (const type of types) {
+        const input = document.createElement("input");
+        input.type = type;
+        expect(isWritableElement(input)).toBe(true);
+      }
+    });
+
+    it("should return false for non-writable input types or other elements", () => {
+      const nonWritableTypes = ["checkbox", "radio", "button", "submit", "range", "color"];
+      for (const type of nonWritableTypes) {
+        const input = document.createElement("input");
+        input.type = type;
+        expect(isWritableElement(input)).toBe(false);
+      }
+      expect(isWritableElement(document.createElement("div"))).toBe(false);
+      expect(isWritableElement(document.createElement("span"))).toBe(false);
+    });
+  });
+
   describe("isTransparent()", () => {
     it("should return true when color is rgb transparent", () => {
       expect(isTransparent("#ff00")).toEqual(true);
