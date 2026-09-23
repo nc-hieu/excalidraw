@@ -4,6 +4,7 @@ import clsx from "clsx";
 import "./PageBar.scss";
 
 import type { useDocumentsManager } from "./useDocumentsManager";
+import type { ExcalidrawPage } from "../../data/documentsDB";
 
 interface PageBarProps {
   manager: ReturnType<typeof useDocumentsManager>;
@@ -138,6 +139,12 @@ const TrashIcon = () => (
   </svg>
 );
 
+interface DropdownState {
+  page: ExcalidrawPage;
+  index: number;
+  rect: DOMRect;
+}
+
 export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
   const {
     currentDoc,
@@ -150,36 +157,37 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
     setIsDocModalOpen,
   } = manager;
 
-  const [activeDropdownPageId, setActiveDropdownPageId] = useState<
-    string | null
-  >(null);
+  const [dropdownState, setDropdownState] = useState<DropdownState | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [pageToDelete, setPageToDelete] = useState<ExcalidrawPage | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdown on click outside adhering to app.ownerDocument guideline
   useEffect(() => {
-    if (!activeDropdownPageId) {
+    if (!dropdownState) {
       return;
     }
 
     const doc = containerRef.current?.ownerDocument || document;
     const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
       if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        target.closest(".excalidraw-page-bar__dropdown") ||
+        target.closest(".excalidraw-page-bar__tab__menu-btn")
       ) {
-        setActiveDropdownPageId(null);
+        return;
       }
+      setDropdownState(null);
     };
 
     doc.addEventListener("pointerdown", handlePointerDown);
     return () => {
       doc.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [activeDropdownPageId]);
+  }, [dropdownState]);
 
   // Focus input when inline renaming
   useEffect(() => {
@@ -196,7 +204,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
   const handleStartRename = (pageId: string, currentName: string) => {
     setEditingPageId(pageId);
     setEditingName(currentName);
-    setActiveDropdownPageId(null);
+    setDropdownState(null);
   };
 
   const handleFinishRename = () => {
@@ -213,6 +221,9 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
       setEditingPageId(null);
     }
   };
+
+  const win = containerRef.current?.ownerDocument?.defaultView || window;
+  const isOnlyPage = currentDoc.pages.length <= 1;
 
   return (
     <div
@@ -238,7 +249,7 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
         {currentDoc.pages.map((page, index) => {
           const isActive = page.id === currentDoc.activePageId;
           const isEditing = page.id === editingPageId;
-          const isDropdownOpen = page.id === activeDropdownPageId;
+          const isDropdownOpen = dropdownState?.page.id === page.id;
 
           return (
             <div
@@ -285,90 +296,18 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                 title="Tùy chọn trang"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setActiveDropdownPageId(isDropdownOpen ? null : page.id);
+                  if (isDropdownOpen) {
+                    setDropdownState(null);
+                  } else {
+                    const rect = (
+                      e.currentTarget as HTMLElement
+                    ).getBoundingClientRect();
+                    setDropdownState({ page, index, rect });
+                  }
                 }}
               >
                 <DotsIcon />
               </button>
-
-              {/* Page Options Dropdown */}
-              {isDropdownOpen && (
-                <div
-                  className="excalidraw-page-bar__dropdown"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    className="excalidraw-page-bar__dropdown__item"
-                    onClick={() => handleStartRename(page.id, page.name)}
-                  >
-                    <EditIcon />
-                    <span>Đổi tên trang</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="excalidraw-page-bar__dropdown__item"
-                    onClick={() => {
-                      duplicatePage(page.id);
-                      setActiveDropdownPageId(null);
-                    }}
-                  >
-                    <CopyIcon />
-                    <span>Nhân bản trang</span>
-                  </button>
-
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      className="excalidraw-page-bar__dropdown__item"
-                      onClick={() => {
-                        reorderPages(index, index - 1);
-                        setActiveDropdownPageId(null);
-                      }}
-                    >
-                      <ArrowLeftIcon />
-                      <span>Chuyển sang trái</span>
-                    </button>
-                  )}
-
-                  {index < currentDoc.pages.length - 1 && (
-                    <button
-                      type="button"
-                      className="excalidraw-page-bar__dropdown__item"
-                      onClick={() => {
-                        reorderPages(index, index + 1);
-                        setActiveDropdownPageId(null);
-                      }}
-                    >
-                      <ArrowRightIcon />
-                      <span>Chuyển sang phải</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    className="excalidraw-page-bar__dropdown__item excalidraw-page-bar__dropdown__item--danger"
-                    disabled={currentDoc.pages.length <= 1}
-                    onClick={() => {
-                      const win =
-                        containerRef.current?.ownerDocument.defaultView ||
-                        window;
-                      if (
-                        win.confirm(
-                          `Bạn có chắc chắn muốn xóa trang "${page.name}" không?`,
-                        )
-                      ) {
-                        deletePage(page.id);
-                      }
-                      setActiveDropdownPageId(null);
-                    }}
-                  >
-                    <TrashIcon />
-                    <span>Xóa trang</span>
-                  </button>
-                </div>
-              )}
             </div>
           );
         })}
@@ -383,6 +322,153 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
       >
         <PlusIcon />
       </button>
+
+      {/* Page Options Dropdown (Positioned outside tabs-container to prevent clipping) */}
+      {dropdownState && (
+        <div
+          className="excalidraw-page-bar__dropdown"
+          style={{
+            position: "fixed",
+            bottom: `${win.innerHeight - dropdownState.rect.top + 8}px`,
+            left: `${Math.max(
+              8,
+              Math.min(dropdownState.rect.left, win.innerWidth - 180),
+            )}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="excalidraw-page-bar__dropdown__item"
+            onClick={() =>
+              handleStartRename(
+                dropdownState.page.id,
+                dropdownState.page.name,
+              )
+            }
+          >
+            <EditIcon />
+            <span>Đổi tên trang</span>
+          </button>
+
+          <button
+            type="button"
+            className="excalidraw-page-bar__dropdown__item"
+            onClick={() => {
+              duplicatePage(dropdownState.page.id);
+              setDropdownState(null);
+            }}
+          >
+            <CopyIcon />
+            <span>Nhân bản trang</span>
+          </button>
+
+          {dropdownState.index > 0 && (
+            <button
+              type="button"
+              className="excalidraw-page-bar__dropdown__item"
+              onClick={() => {
+                reorderPages(dropdownState.index, dropdownState.index - 1);
+                setDropdownState(null);
+              }}
+            >
+              <ArrowLeftIcon />
+              <span>Chuyển sang trái</span>
+            </button>
+          )}
+
+          {dropdownState.index < currentDoc.pages.length - 1 && (
+            <button
+              type="button"
+              className="excalidraw-page-bar__dropdown__item"
+              onClick={() => {
+                reorderPages(dropdownState.index, dropdownState.index + 1);
+                setDropdownState(null);
+              }}
+            >
+              <ArrowRightIcon />
+              <span>Chuyển sang phải</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="excalidraw-page-bar__dropdown__item excalidraw-page-bar__dropdown__item--danger"
+            disabled={isOnlyPage}
+            title={
+              isOnlyPage
+                ? "Không thể xóa trang duy nhất trong bản vẽ"
+                : "Xóa trang này"
+            }
+            onClick={() => {
+              if (!isOnlyPage) {
+                setPageToDelete(dropdownState.page);
+                setDropdownState(null);
+              }
+            }}
+          >
+            <TrashIcon />
+            <span>Xóa trang</span>
+          </button>
+        </div>
+      )}
+
+      {/* Custom Delete Page Confirmation Modal */}
+      {pageToDelete && (
+        <div
+          className="excalidraw-page-bar__confirm-modal-overlay"
+          onClick={() => setPageToDelete(null)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Escape") {
+              setPageToDelete(null);
+            }
+          }}
+          tabIndex={-1}
+        >
+          <div
+            className="excalidraw-page-bar__confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-page-title"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="excalidraw-page-bar__confirm-modal__header">
+              <div className="excalidraw-page-bar__confirm-modal__icon">
+                <TrashIcon />
+              </div>
+              <h3 id="delete-page-title">Xác nhận xóa trang</h3>
+            </div>
+            <p className="excalidraw-page-bar__confirm-modal__desc">
+              Bạn có chắc chắn muốn xóa trang{" "}
+              <strong>&quot;{pageToDelete.name}&quot;</strong> không? Thao tác
+              này sẽ xóa toàn bộ nội dung của trang và không thể hoàn tác.
+            </p>
+            <div className="excalidraw-page-bar__confirm-modal__actions">
+              <button
+                type="button"
+                className="excalidraw-page-bar__confirm-modal__btn excalidraw-page-bar__confirm-modal__btn--cancel"
+                onClick={() => setPageToDelete(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                autoFocus
+                className="excalidraw-page-bar__confirm-modal__btn excalidraw-page-bar__confirm-modal__btn--delete"
+                onClick={() => {
+                  deletePage(pageToDelete.id);
+                  setPageToDelete(null);
+                }}
+              >
+                Xác nhận xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

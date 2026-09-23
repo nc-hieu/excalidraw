@@ -100,6 +100,80 @@ describe("MultiPage UI Components", () => {
     expect(manager.switchPage).toHaveBeenCalledWith("p-2");
   });
 
+  it("should open 3-dots menu and show page options", () => {
+    const manager = createMockManager();
+    render(<PageBar manager={manager as any} />);
+
+    const menuBtns = screen.getAllByTitle("Tùy chọn trang");
+    expect(menuBtns.length).toBe(2);
+
+    // Click 3 dots on the first page
+    fireEvent.click(menuBtns[0]);
+
+    expect(screen.getByText("Đổi tên trang")).toBeDefined();
+    expect(screen.getByText("Nhân bản trang")).toBeDefined();
+    expect(screen.getByText("Chuyển sang phải")).toBeDefined();
+    expect(screen.getByText("Xóa trang")).toBeDefined();
+  });
+
+  it("should prompt confirmation modal when clicking delete page and call deletePage on confirm", () => {
+    const manager = createMockManager();
+    render(<PageBar manager={manager as any} />);
+
+    const menuBtns = screen.getAllByTitle("Tùy chọn trang");
+    fireEvent.click(menuBtns[1]); // Page 2
+
+    const deleteBtn = screen.getByText("Xóa trang");
+    fireEvent.click(deleteBtn);
+
+    // Modal should be visible
+    expect(screen.getByText("Xác nhận xóa trang")).toBeDefined();
+    expect(
+      screen.getByText(/Bạn có chắc chắn muốn xóa trang/),
+    ).toBeDefined();
+
+    // Click confirm delete
+    const confirmBtn = screen.getByText("Xác nhận xóa");
+    fireEvent.click(confirmBtn);
+
+    expect(manager.deletePage).toHaveBeenCalledWith("p-2");
+    expect(screen.queryByText("Xác nhận xóa trang")).toBeNull();
+  });
+
+  it("should close delete modal without deleting when clicking cancel", () => {
+    const manager = createMockManager();
+    render(<PageBar manager={manager as any} />);
+
+    const menuBtns = screen.getAllByTitle("Tùy chọn trang");
+    fireEvent.click(menuBtns[0]);
+
+    const deleteBtn = screen.getByText("Xóa trang");
+    fireEvent.click(deleteBtn);
+
+    expect(screen.getByText("Xác nhận xóa trang")).toBeDefined();
+
+    const cancelBtn = screen.getByText("Hủy bỏ");
+    fireEvent.click(cancelBtn);
+
+    expect(manager.deletePage).not.toHaveBeenCalled();
+    expect(screen.queryByText("Xác nhận xóa trang")).toBeNull();
+  });
+
+  it("should disable delete button when only 1 page remains", () => {
+    const singlePageDoc = {
+      ...mockDoc,
+      pages: [mockDoc.pages[0]],
+    };
+    const manager = createMockManager({ currentDoc: singlePageDoc });
+    render(<PageBar manager={manager as any} />);
+
+    const menuBtn = screen.getByTitle("Tùy chọn trang");
+    fireEvent.click(menuBtn);
+
+    const deleteBtn = screen.getByText("Xóa trang").closest("button");
+    expect(deleteBtn?.hasAttribute("disabled")).toBe(true);
+  });
+
   it("should open DocumentManagerModal when modal is open and filter results", () => {
     const manager = createMockManager({ isDocModalOpen: true });
     render(<DocumentManagerModal manager={manager as any} />);
