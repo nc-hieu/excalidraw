@@ -13,22 +13,50 @@ export const buildApp = async () => {
   });
 
   // CORS
-  const corsOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",")
-    : ["http://localhost:3000", "http://localhost:3003"];
+  const corsOrigins = (process.env.CORS_ORIGIN || "*")
+    .split(",")
+    .map((s) => s.trim());
 
   await app.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
+
       if (
+        corsOrigins.includes("*") ||
         corsOrigins.includes(origin) ||
         process.env.NODE_ENV !== "production"
       ) {
         return cb(null, true);
       }
+
+      try {
+        const { hostname } = new URL(origin);
+        if (
+          hostname === "localhost" ||
+          hostname === "127.0.0.1" ||
+          /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+          /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+          /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
+        ) {
+          return cb(null, true);
+        }
+      } catch {
+        // ignore url parse error
+      }
+
       return cb(new Error("Not allowed by CORS"), false);
     },
     credentials: true,
+  });
+
+  app.setErrorHandler((error: any, request, reply) => {
+    console.error(`[API Error] ${request.method} ${request.url}:`, error);
+    const statusCode = error?.statusCode || 500;
+    reply.status(statusCode).send({
+      statusCode,
+      error: error?.name || "Internal Server Error",
+      message: error?.message || "Đã xảy ra lỗi máy chủ",
+    });
   });
 
   // Plugins

@@ -31,7 +31,7 @@ services:
       HOST: 0.0.0.0
       DATABASE_URL: postgresql://excalidraw:secret_password@db:5432/excalidraw_db?schema=public
       JWT_SECRET: excalidraw_super_secret_jwt_key_2026
-      CORS_ORIGIN: http://localhost:3000,http://localhost:3003
+      CORS_ORIGIN: "*"
     depends_on:
       db:
         condition: service_healthy
@@ -55,6 +55,7 @@ services:
       - ./:/opt/node_app/app:delegated
       - ./package.json:/opt/node_app/package.json
       - ./yarn.lock:/opt/node_app/yarn.lock
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - notused:/opt/node_app/app/node_modules
 
 volumes:
