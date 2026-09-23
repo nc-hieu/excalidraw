@@ -35,6 +35,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -104,9 +105,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       return;
     }
 
-    if (tab === "register" && password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
+    if (tab === "register") {
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
     }
 
     setLoading(true);
@@ -170,6 +177,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             onClick={() => {
               setTab("login");
               setError(null);
+              setConfirmPassword("");
             }}
           >
             Sign in
@@ -182,6 +190,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             onClick={() => {
               setTab("register");
               setError(null);
+              setConfirmPassword("");
             }}
           >
             Sign up
@@ -231,6 +240,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               disabled={loading}
             />
           </div>
+
+          {tab === "register" && (
+            <div className="auth-modal-dialog__field">
+              <label htmlFor="auth-confirm-password">Confirm password</label>
+              <input
+                id="auth-confirm-password"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+          )}
 
           <button
             type="submit"

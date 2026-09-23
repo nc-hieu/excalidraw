@@ -41,9 +41,10 @@
   }
 
   &__header {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 18px 20px 14px;
     border-bottom: 1px solid var(--default-border-color, #eaeaea);
   }
@@ -52,9 +53,14 @@
     margin: 0;
     font-size: 1.15rem;
     font-weight: 600;
+    text-align: center;
   }
 
   &__close-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
     color: var(--text-primary-color, #555);
