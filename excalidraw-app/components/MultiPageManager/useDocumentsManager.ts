@@ -9,11 +9,12 @@ import type {
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/element/types";
 
-import { useAtom } from "../../app-jotai";
+import { useAtom, useSetAtom } from "../../app-jotai";
 import {
   saveDocument,
   getDocument,
   deleteDocument,
+  getAllDocuments,
   getAllDocumentsMetadata,
   generateId,
   createDefaultDocument,
@@ -23,6 +24,20 @@ import {
   type ExcalidrawDocument,
   type ExcalidrawPage,
 } from "../../data/documentsDB";
+
+import {
+  currentUserAtom,
+  syncStatusAtom,
+  mergePromptAtom,
+} from "../Auth/authState";
+
+import {
+  getAuthToken,
+  syncDocumentToCloud,
+  fetchCloudDocuments,
+  getCloudDocument,
+  deleteCloudDocument,
+} from "../../data/backendAPI";
 
 import {
   currentDocumentAtom,
@@ -37,6 +52,10 @@ export const useDocumentsManager = (
   const [docsList, setDocsList] = useAtom(documentsListAtom);
   const [isDocModalOpen, setIsDocModalOpen] = useAtom(isDocModalOpenAtom);
 
+  const [currentUser] = useAtom(currentUserAtom);
+  const setSyncStatus = useSetAtom(syncStatusAtom);
+  const setMergePrompt = useSetAtom(mergePromptAtom);
+
   const currentDocRef = useRef<ExcalidrawDocument | null>(currentDoc);
   currentDocRef.current = currentDoc;
 
@@ -45,7 +64,7 @@ export const useDocumentsManager = (
     setDocsList(list);
   }, [setDocsList]);
 
-  // Initial load
+  // Initial load from IndexedDB
   useEffect(() => {
     let isMounted = true;
     initDocuments().then(async ({ activeDoc }) => {
@@ -64,7 +83,87 @@ export const useDocumentsManager = (
     };
   }, [setCurrentDoc, setDocsList]);
 
-  // Debounced save to IndexedDB
+  // Cloud Auto-Sync on Login
+  useEffect(() => {
+    if (!currentUser) {
+      setSyncStatus("offline");
+      return;
+    }
+
+    let isMounted = true;
+    (async () => {
+      try {
+        setSyncStatus("syncing");
+        const cloudDocs = await fetchCloudDocuments();
+        const localDocs = await getAllDocuments();
+
+        if (cloudDocs.length === 0 && localDocs.length > 0) {
+          // Local docs exist but none on cloud -> Prompt user to merge
+          if (isMounted) {
+            setMergePrompt({
+              isOpen: true,
+              localDocCount: localDocs.length,
+            });
+            setSyncStatus("synced");
+          }
+        } else if (cloudDocs.length > 0) {
+          // Cloud docs exist -> Sync down the latest cloud document
+          const latestCloudMeta = cloudDocs[0];
+          const fullCloudDoc = await getCloudDocument(latestCloudMeta.id);
+          if (fullCloudDoc && isMounted) {
+            await saveDocument(fullCloudDoc);
+            await setActiveDocumentId(fullCloudDoc.id);
+            currentDocRef.current = fullCloudDoc;
+            setCurrentDoc(fullCloudDoc);
+            await refreshDocsList();
+
+            // Render into canvas
+            if (excalidrawAPI) {
+              const activePage =
+                fullCloudDoc.pages.find(
+                  (p) => p.id === fullCloudDoc.activePageId,
+                ) || fullCloudDoc.pages[0];
+
+              if (
+                activePage.files &&
+                Object.keys(activePage.files).length > 0
+              ) {
+                excalidrawAPI.addFiles(Object.values(activePage.files));
+              }
+
+              excalidrawAPI.updateScene({
+                elements: activePage.elements,
+                appState: { ...activePage.appState, isLoading: false } as any,
+                captureUpdate: CaptureUpdateAction.NEVER,
+              });
+              excalidrawAPI.history.clear();
+            }
+            setSyncStatus("synced");
+          }
+        } else {
+          setSyncStatus("synced");
+        }
+      } catch (err) {
+        console.error("Error during cloud sync on login:", err);
+        if (isMounted) {
+          setSyncStatus("offline");
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    currentUser,
+    excalidrawAPI,
+    refreshDocsList,
+    setCurrentDoc,
+    setMergePrompt,
+    setSyncStatus,
+  ]);
+
+  // Debounced save to IndexedDB (500ms)
   const debouncedSaveRef = useRef(
     debounce((doc: ExcalidrawDocument) => {
       if (doc) {
@@ -72,6 +171,38 @@ export const useDocumentsManager = (
       }
     }, 500),
   );
+
+  // Debounced cloud sync to Backend port 4000 (1000ms)
+  const debouncedCloudSyncRef = useRef(
+    debounce(async (doc: ExcalidrawDocument) => {
+      if (!doc || !getAuthToken()) {
+        return;
+      }
+      setSyncStatus("syncing");
+      const ok = await syncDocumentToCloud(doc);
+      setSyncStatus(ok ? "synced" : "offline");
+    }, 1000),
+  );
+
+  const syncNow = useCallback(async () => {
+    const doc = currentDocRef.current;
+    if (!doc || !getAuthToken()) {
+      return;
+    }
+    setSyncStatus("syncing");
+    const ok = await syncDocumentToCloud(doc);
+    setSyncStatus(ok ? "synced" : "offline");
+  }, [setSyncStatus]);
+
+  const mergeLocalDocsToCloud = useCallback(async () => {
+    const localDocs = await getAllDocuments();
+    setSyncStatus("syncing");
+    for (const doc of localDocs) {
+      await syncDocumentToCloud(doc);
+    }
+    setSyncStatus("synced");
+    await refreshDocsList();
+  }, [refreshDocsList, setSyncStatus]);
 
   const handleSceneChange = useCallback(
     (
@@ -115,6 +246,7 @@ export const useDocumentsManager = (
 
       currentDocRef.current = updatedDoc;
       debouncedSaveRef.current(updatedDoc);
+      debouncedCloudSyncRef.current(updatedDoc);
     },
     [],
   );
@@ -172,6 +304,7 @@ export const useDocumentsManager = (
       currentDocRef.current = newDoc;
       setCurrentDoc(newDoc);
       await saveDocument(newDoc);
+      debouncedCloudSyncRef.current(newDoc);
 
       // 2. Load target page into Excalidraw
       if (targetPage.files && Object.keys(targetPage.files).length > 0) {
@@ -187,7 +320,6 @@ export const useDocumentsManager = (
         captureUpdate: CaptureUpdateAction.NEVER,
       });
 
-      // Clear undo/redo stack
       excalidrawAPI.history.clear();
     },
     [excalidrawAPI, setCurrentDoc],
@@ -237,6 +369,7 @@ export const useDocumentsManager = (
       setCurrentDoc(newDoc);
       await saveDocument(newDoc);
       await refreshDocsList();
+      debouncedCloudSyncRef.current(newDoc);
 
       excalidrawAPI.updateScene({
         elements: [],
@@ -262,10 +395,11 @@ export const useDocumentsManager = (
       }
 
       const updatedPages: ExcalidrawPage[] = doc.pages.map(
-        (p: ExcalidrawPage) =>
-          p.id === pageId
+        (p: ExcalidrawPage) => {
+          return p.id === pageId
             ? { ...p, name: newName.trim(), updatedAt: Date.now() }
-            : p,
+            : p;
+        },
       );
 
       const newDoc: ExcalidrawDocument = {
@@ -277,6 +411,7 @@ export const useDocumentsManager = (
       currentDocRef.current = newDoc;
       setCurrentDoc(newDoc);
       await saveDocument(newDoc);
+      debouncedCloudSyncRef.current(newDoc);
     },
     [setCurrentDoc],
   );
@@ -311,9 +446,9 @@ export const useDocumentsManager = (
             }
           : targetPage.appState;
 
-      const duplicatedElements = elementsToCopy.map((el: ExcalidrawElement) =>
-        deepCopyElement(el),
-      );
+      const duplicatedElements = elementsToCopy.map((el: ExcalidrawElement) => {
+        return deepCopyElement(el);
+      });
 
       const newPage: ExcalidrawPage = {
         id: generateId(),
@@ -342,6 +477,7 @@ export const useDocumentsManager = (
       setCurrentDoc(newDoc);
       await saveDocument(newDoc);
       await refreshDocsList();
+      debouncedCloudSyncRef.current(newDoc);
 
       if (newPage.files && Object.keys(newPage.files).length > 0) {
         excalidrawAPI.addFiles(Object.values(newPage.files));
@@ -398,6 +534,7 @@ export const useDocumentsManager = (
       setCurrentDoc(newDoc);
       await saveDocument(newDoc);
       await refreshDocsList();
+      debouncedCloudSyncRef.current(newDoc);
 
       if (shouldUpdateCanvas) {
         const targetPage = newPages.find(
@@ -448,6 +585,7 @@ export const useDocumentsManager = (
       currentDocRef.current = newDoc;
       setCurrentDoc(newDoc);
       await saveDocument(newDoc);
+      debouncedCloudSyncRef.current(newDoc);
     },
     [setCurrentDoc],
   );
@@ -489,15 +627,20 @@ export const useDocumentsManager = (
           },
         );
 
-        await saveDocument({
+        const saved = {
           ...current,
           pages: updatedPages,
           updatedAt: Date.now(),
-        });
+        };
+        await saveDocument(saved);
+        debouncedCloudSyncRef.current(saved);
       }
 
       // 2. Fetch target doc
-      const targetDoc = await getDocument(docId);
+      let targetDoc = await getDocument(docId);
+      if (!targetDoc && getAuthToken()) {
+        targetDoc = await getCloudDocument(docId);
+      }
       if (!targetDoc) {
         return;
       }
@@ -561,11 +704,13 @@ export const useDocumentsManager = (
             return p;
           },
         );
-        await saveDocument({
+        const saved = {
           ...current,
           pages: updatedPages,
           updatedAt: Date.now(),
-        });
+        };
+        await saveDocument(saved);
+        debouncedCloudSyncRef.current(saved);
       }
 
       const list = await getAllDocumentsMetadata();
@@ -577,6 +722,7 @@ export const useDocumentsManager = (
       currentDocRef.current = newDoc;
       setCurrentDoc(newDoc);
       await refreshDocsList();
+      debouncedCloudSyncRef.current(newDoc);
 
       excalidrawAPI.updateScene({
         elements: [],
@@ -609,6 +755,7 @@ export const useDocumentsManager = (
         updatedAt: Date.now(),
       };
       await saveDocument(updated);
+      debouncedCloudSyncRef.current(updated);
 
       if (currentDocRef.current && currentDocRef.current.id === docId) {
         currentDocRef.current = updated;
@@ -631,8 +778,8 @@ export const useDocumentsManager = (
 
         sourceDoc = {
           ...current,
-          pages: current.pages.map((p: ExcalidrawPage) =>
-            p.id === current.activePageId
+          pages: current.pages.map((p: ExcalidrawPage) => {
+            return p.id === current.activePageId
               ? {
                   ...p,
                   elements: currentElements,
@@ -645,8 +792,8 @@ export const useDocumentsManager = (
                   files: currentFiles,
                   updatedAt: Date.now(),
                 }
-              : p,
-          ),
+              : p;
+          }),
         };
         await saveDocument(sourceDoc);
       } else {
@@ -662,9 +809,9 @@ export const useDocumentsManager = (
         (p: ExcalidrawPage) => ({
           ...p,
           id: generateId(),
-          elements: p.elements.map((el: ExcalidrawElement) =>
-            deepCopyElement(el),
-          ),
+          elements: p.elements.map((el: ExcalidrawElement) => {
+            return deepCopyElement(el);
+          }),
           createdAt: Date.now(),
           updatedAt: Date.now(),
         }),
@@ -681,6 +828,7 @@ export const useDocumentsManager = (
 
       await saveDocument(clonedDoc);
       await refreshDocsList();
+      debouncedCloudSyncRef.current(clonedDoc);
     },
     [excalidrawAPI, refreshDocsList],
   );
@@ -688,6 +836,9 @@ export const useDocumentsManager = (
   const deleteDoc = useCallback(
     async (docId: string) => {
       await deleteDocument(docId);
+      if (getAuthToken()) {
+        deleteCloudDocument(docId);
+      }
       const remaining = await getAllDocumentsMetadata();
       setDocsList(remaining);
 
@@ -741,5 +892,7 @@ export const useDocumentsManager = (
     deleteDoc,
     handleSceneChange,
     refreshDocsList,
+    syncNow,
+    mergeLocalDocsToCloud,
   };
 };

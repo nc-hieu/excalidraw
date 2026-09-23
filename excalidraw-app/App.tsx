@@ -148,6 +148,7 @@ import {
   PageBar,
   DocumentManagerModal,
 } from "./components/MultiPageManager";
+import { UserBadge, AuthModal } from "./components/Auth";
 
 import "./index.scss";
 
@@ -1014,7 +1015,7 @@ const ExcalidrawWrapper = () => {
         theme={editorTheme}
         onThemeChange={setAppTheme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile || !collabAPI || isCollabDisabled) {
+          if (isMobile) {
             return null;
           }
 
@@ -1027,12 +1028,18 @@ const ExcalidrawWrapper = () => {
               )}
 
               {collabError.message && <CollabError collabError={collabError} />}
-              <LiveCollaborationTrigger
-                isCollaborating={isCollaborating}
-                onSelect={() =>
-                  setShareDialogState({ isOpen: true, type: "share" })
-                }
-                editorInterface={editorInterface}
+              {collabAPI && !isCollabDisabled && (
+                <LiveCollaborationTrigger
+                  isCollaborating={isCollaborating}
+                  onSelect={() =>
+                    setShareDialogState({ isOpen: true, type: "share" })
+                  }
+                  editorInterface={editorInterface}
+                />
+              )}
+              <UserBadge
+                onSyncNow={docManager.syncNow}
+                onMergeConfirm={docManager.mergeLocalDocsToCloud}
               />
             </div>
           );
@@ -1320,6 +1327,7 @@ const ExcalidrawWrapper = () => {
       </Excalidraw>
       <PageBar manager={docManager} />
       <DocumentManagerModal manager={docManager} />
+      <AuthModal />
     </div>
   );
 };
