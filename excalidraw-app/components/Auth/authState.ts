@@ -16,3 +16,12 @@ export interface MergePromptState {
 }
 
 export const mergePromptAtom = atom<MergePromptState | null>(null);
+
+export interface ConflictPromptState {
+  isOpen: boolean;
+  docId: string;
+  docName: string;
+}
+
+export const conflictPromptAtom = atom<ConflictPromptState | null>(null);
+

@@ -29,6 +29,7 @@ import {
   currentUserAtom,
   syncStatusAtom,
   mergePromptAtom,
+  conflictPromptAtom,
 } from "../Auth/authState";
 
 import {
@@ -55,6 +56,7 @@ export const useDocumentsManager = (
   const [currentUser] = useAtom(currentUserAtom);
   const setSyncStatus = useSetAtom(syncStatusAtom);
   const setMergePrompt = useSetAtom(mergePromptAtom);
+  const setConflictPrompt = useSetAtom(conflictPromptAtom);
 
   const currentDocRef = useRef<ExcalidrawDocument | null>(currentDoc);
   currentDocRef.current = currentDoc;
@@ -179,8 +181,17 @@ export const useDocumentsManager = (
         return;
       }
       setSyncStatus("syncing");
-      const ok = await syncDocumentToCloud(doc);
-      setSyncStatus(ok ? "synced" : "offline");
+      const res = await syncDocumentToCloud(doc);
+      if (res.forbidden) {
+        setSyncStatus("offline");
+        setConflictPrompt({
+          isOpen: true,
+          docId: doc.id,
+          docName: doc.name,
+        });
+        return;
+      }
+      setSyncStatus(res.ok ? "synced" : "offline");
     }, 1000),
   );
 
@@ -190,19 +201,156 @@ export const useDocumentsManager = (
       return;
     }
     setSyncStatus("syncing");
-    const ok = await syncDocumentToCloud(doc);
-    setSyncStatus(ok ? "synced" : "offline");
-  }, [setSyncStatus]);
+    const res = await syncDocumentToCloud(doc);
+    if (res.forbidden) {
+      setSyncStatus("offline");
+      setConflictPrompt({
+        isOpen: true,
+        docId: doc.id,
+        docName: doc.name,
+      });
+      return;
+    }
+    setSyncStatus(res.ok ? "synced" : "offline");
+  }, [setConflictPrompt, setSyncStatus]);
 
   const mergeLocalDocsToCloud = useCallback(async () => {
     const localDocs = await getAllDocuments();
     setSyncStatus("syncing");
     for (const doc of localDocs) {
-      await syncDocumentToCloud(doc);
+      const res = await syncDocumentToCloud(doc);
+      if (res.forbidden) {
+        // If local doc belongs to another account, fork it with a new ID
+        const newId = generateId();
+        const forkedDoc = {
+          ...doc,
+          id: newId,
+          pages: doc.pages.map((p) => ({ ...p, documentId: newId })),
+        };
+        await saveDocument(forkedDoc);
+        await syncDocumentToCloud(forkedDoc);
+      }
     }
     setSyncStatus("synced");
     await refreshDocsList();
   }, [refreshDocsList, setSyncStatus]);
+
+  const handleConflictFork = useCallback(async () => {
+    const current = currentDocRef.current;
+    if (!current || !excalidrawAPI) {
+      setConflictPrompt(null);
+      return;
+    }
+
+    const newDocId = generateId();
+    const forkedPages: ExcalidrawPage[] = current.pages.map((p) => {
+      const newPageId = generateId();
+      return {
+        ...p,
+        id: newPageId,
+        documentId: newDocId,
+        updatedAt: Date.now(),
+      };
+    });
+
+    const forkedDoc: ExcalidrawDocument = {
+      ...current,
+      id: newDocId,
+      name: `${current.name} (Bản sao)`,
+      activePageId: forkedPages[0]?.id || generateId(),
+      pages: forkedPages,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    // Save forked document locally and set active
+    await saveDocument(forkedDoc);
+    await setActiveDocumentId(forkedDoc.id);
+    currentDocRef.current = forkedDoc;
+    setCurrentDoc(forkedDoc);
+    await refreshDocsList();
+
+    // Close conflict modal
+    setConflictPrompt(null);
+
+    // Sync immediately to current user's cloud account
+    setSyncStatus("syncing");
+    const res = await syncDocumentToCloud(forkedDoc);
+    setSyncStatus(res.ok ? "synced" : "offline");
+  }, [
+    excalidrawAPI,
+    refreshDocsList,
+    setCurrentDoc,
+    setConflictPrompt,
+    setSyncStatus,
+  ]);
+
+  const handleConflictReset = useCallback(async () => {
+    const current = currentDocRef.current;
+    if (!excalidrawAPI) {
+      setConflictPrompt(null);
+      return;
+    }
+
+    if (current) {
+      await deleteDocument(current.id);
+    }
+
+    // Check if user has cloud docs
+    const cloudDocs = await fetchCloudDocuments();
+    if (cloudDocs.length > 0) {
+      const firstDoc = await getCloudDocument(cloudDocs[0].id);
+      if (firstDoc) {
+        await saveDocument(firstDoc);
+        await setActiveDocumentId(firstDoc.id);
+        currentDocRef.current = firstDoc;
+        setCurrentDoc(firstDoc);
+        await refreshDocsList();
+
+        const activePage =
+          firstDoc.pages.find((p) => p.id === firstDoc.activePageId) ||
+          firstDoc.pages[0];
+        if (activePage.files && Object.keys(activePage.files).length > 0) {
+          excalidrawAPI.addFiles(Object.values(activePage.files));
+        }
+        excalidrawAPI.updateScene({
+          elements: activePage.elements,
+          appState: { ...activePage.appState, isLoading: false } as any,
+          captureUpdate: CaptureUpdateAction.NEVER,
+        });
+        excalidrawAPI.history.clear();
+        setConflictPrompt(null);
+        setSyncStatus("synced");
+        return;
+      }
+    }
+
+    // If no cloud docs, create a fresh default document
+    const freshDoc = createDefaultDocument();
+    await saveDocument(freshDoc);
+    await setActiveDocumentId(freshDoc.id);
+    currentDocRef.current = freshDoc;
+    setCurrentDoc(freshDoc);
+    await refreshDocsList();
+
+    excalidrawAPI.updateScene({
+      elements: [],
+      appState: { isLoading: false } as any,
+      captureUpdate: CaptureUpdateAction.NEVER,
+    });
+    excalidrawAPI.history.clear();
+    setConflictPrompt(null);
+    setSyncStatus("synced");
+
+    // Sync the fresh doc to cloud
+    await syncDocumentToCloud(freshDoc);
+  }, [
+    excalidrawAPI,
+    refreshDocsList,
+    setCurrentDoc,
+    setConflictPrompt,
+    setSyncStatus,
+  ]);
 
   const handleSceneChange = useCallback(
     (
@@ -894,5 +1042,7 @@ export const useDocumentsManager = (
     refreshDocsList,
     syncNow,
     mergeLocalDocsToCloud,
+    handleConflictFork,
+    handleConflictReset,
   };
 };

@@ -195,11 +195,10 @@ describe("Excalidraw Backend API Suite", () => {
       expect(json.document.name).toBe("Bản vẽ 1");
     });
 
-    it("should sync document snapshot atomically", async () => {
+    it("should sync existing document snapshot atomically", async () => {
       const token = app.jwt.sign({ userId: "user-123", email: "test@example.com" });
-      mockPrisma.document.findFirst.mockResolvedValue(mockDocument);
-      mockPrisma.document.update.mockResolvedValue(mockDocument);
       mockPrisma.document.findUnique.mockResolvedValue(mockDocument);
+      mockPrisma.document.update.mockResolvedValue(mockDocument);
 
       const res = await app.inject({
         method: "PUT",
@@ -224,6 +223,39 @@ describe("Excalidraw Backend API Suite", () => {
       expect(res.statusCode).toBe(200);
       const json = JSON.parse(res.payload);
       expect(json.message).toContain("thành công");
+    });
+
+    it("should auto-upsert and create new document when syncing local-first document ID", async () => {
+      const token = app.jwt.sign({ userId: "user-123", email: "test@example.com" });
+      // When document doesn't exist yet
+      mockPrisma.document.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ ...mockDocument, id: "local-new-id" });
+      mockPrisma.document.create.mockResolvedValue({ ...mockDocument, id: "local-new-id" });
+
+      const res = await app.inject({
+        method: "PUT",
+        url: "/api/documents/local-new-id/sync",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        payload: {
+          name: "Bản vẽ Local",
+          activePageId: "page-local-1",
+          pages: [
+            {
+              id: "page-local-1",
+              name: "Trang 1",
+              elements: [],
+            },
+          ],
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const json = JSON.parse(res.payload);
+      expect(json.message).toContain("thành công");
+      expect(mockPrisma.document.create).toHaveBeenCalled();
     });
   });
 

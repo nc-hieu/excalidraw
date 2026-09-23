@@ -1040,6 +1040,8 @@ const ExcalidrawWrapper = () => {
               <UserBadge
                 onSyncNow={docManager.syncNow}
                 onMergeConfirm={docManager.mergeLocalDocsToCloud}
+                onConflictFork={docManager.handleConflictFork}
+                onConflictReset={docManager.handleConflictReset}
               />
             </div>
           );

@@ -177,12 +177,18 @@ export const getCloudDocument = async (
   return data.document || null;
 };
 
+export interface SyncResult {
+  ok: boolean;
+  status: number;
+  forbidden?: boolean;
+}
+
 export const syncDocumentToCloud = async (
   doc: ExcalidrawDocument,
-): Promise<boolean> => {
+): Promise<SyncResult> => {
   const token = getAuthToken();
   if (!token) {
-    return false;
+    return { ok: false, status: 401 };
   }
 
   try {
@@ -204,10 +210,14 @@ export const syncDocumentToCloud = async (
       }),
     });
 
-    return response.ok;
+    if (response.status === 403) {
+      return { ok: false, status: 403, forbidden: true };
+    }
+
+    return { ok: response.ok, status: response.status };
   } catch (error) {
     console.error(`Error syncing document ${doc.id} to cloud:`, error);
-    return false;
+    return { ok: false, status: 0 };
   }
 };
 

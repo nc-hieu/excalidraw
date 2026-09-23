@@ -10,6 +10,7 @@ import {
   isAuthModalOpenAtom,
   syncStatusAtom,
   mergePromptAtom,
+  conflictPromptAtom,
 } from "./authState";
 
 import "./UserBadge.scss";
@@ -18,6 +19,8 @@ interface UserBadgeProps {
   onSyncNow?: () => void;
   onMergeConfirm?: () => void;
   onMergeCancel?: () => void;
+  onConflictFork?: () => void;
+  onConflictReset?: () => void;
 }
 
 // Icons
@@ -119,11 +122,14 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
   onSyncNow,
   onMergeConfirm,
   onMergeCancel,
+  onConflictFork,
+  onConflictReset,
 }) => {
   const [currentUser, setCurrentUser] = useAtom(currentUserAtom);
   const setIsAuthModalOpen = useSetAtom(isAuthModalOpenAtom);
   const [syncStatus] = useAtom(syncStatusAtom);
   const [mergePrompt, setMergePrompt] = useAtom(mergePromptAtom);
+  const [conflictPrompt, setConflictPrompt] = useAtom(conflictPromptAtom);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -263,8 +269,16 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
 
       {/* Merge Confirmation Dialog */}
       {mergePrompt?.isOpen && (
-        <div className="merge-prompt-backdrop">
-          <div className="merge-prompt-dialog">
+        <div
+          className="merge-prompt-backdrop"
+          onKeyDown={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.stopPropagation()}
+        >
+          <div
+            className="merge-prompt-dialog"
+            onKeyDown={(e) => e.stopPropagation()}
+            onKeyUp={(e) => e.stopPropagation()}
+          >
             <h3 className="merge-prompt-dialog__title">
               Đồng bộ bản vẽ vào tài khoản
             </h3>
@@ -297,6 +311,54 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
                 }}
               >
                 Đồng bộ lên Cloud
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ownership Conflict Dialog */}
+      {conflictPrompt?.isOpen && (
+        <div
+          className="merge-prompt-backdrop"
+          onKeyDown={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.stopPropagation()}
+        >
+          <div
+            className="merge-prompt-dialog"
+            onKeyDown={(e) => e.stopPropagation()}
+            onKeyUp={(e) => e.stopPropagation()}
+          >
+            <h3 className="merge-prompt-dialog__title">
+              Xung đột quyền sở hữu bản vẽ
+            </h3>
+            <p className="merge-prompt-dialog__desc">
+              Bản vẽ <strong>"{conflictPrompt.docName}"</strong> này thuộc quyền sở hữu của một tài khoản khác trên máy chủ. Bạn có muốn tạo bản sao (Fork) vào tài khoản của bạn để tiếp tục chỉnh sửa và đồng bộ không?
+            </p>
+            <div className="merge-prompt-dialog__actions">
+              <button
+                type="button"
+                className="merge-prompt-dialog__btn merge-prompt-dialog__btn--danger"
+                onClick={() => {
+                  setConflictPrompt(null);
+                  if (onConflictReset) {
+                    onConflictReset();
+                  }
+                }}
+              >
+                Xóa dữ liệu cũ & Làm mới
+              </button>
+              <button
+                type="button"
+                className="merge-prompt-dialog__btn merge-prompt-dialog__btn--primary"
+                onClick={() => {
+                  setConflictPrompt(null);
+                  if (onConflictFork) {
+                    onConflictFork();
+                  }
+                }}
+              >
+                Tạo bản sao (Fork)
               </button>
             </div>
           </div>

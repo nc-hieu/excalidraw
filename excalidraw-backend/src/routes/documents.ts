@@ -139,30 +139,42 @@ export const documentRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      const existing = await fastify.prisma.document.findFirst({
-        where: { id, userId: request.user.userId },
+      let existing = await fastify.prisma.document.findUnique({
+        where: { id },
       });
 
-      if (!existing) {
-        return reply.code(404).send({
-          error: "Not Found",
-          message: "Không tìm thấy bản vẽ để đồng bộ",
+      if (existing && existing.userId !== request.user.userId) {
+        return reply.code(403).send({
+          error: "Forbidden",
+          message: "Bạn không có quyền chỉnh sửa bản vẽ này",
         });
       }
 
       const incomingPageIds = pages.map((p) => p.id);
 
-      // Atomic sync via Prisma Transaction
+      // Atomic sync via Prisma Transaction (Upsert Document + Upsert Pages)
       const syncedDocument = await fastify.prisma.$transaction(async (tx) => {
-        // 1. Update document root attributes
-        await tx.document.update({
-          where: { id },
-          data: {
-            name: name?.trim() || existing.name,
-            activePageId: activePageId || existing.activePageId,
-            updatedAt: new Date(),
-          },
-        });
+        if (!existing) {
+          // Document does not exist yet -> Create it with the client-supplied ID
+          await tx.document.create({
+            data: {
+              id,
+              userId: request.user.userId,
+              name: name?.trim() || "Bản vẽ 1",
+              activePageId: activePageId || pages[0]?.id || "page_1",
+            },
+          });
+        } else {
+          // Document exists and belongs to current user -> Update root attributes
+          await tx.document.update({
+            where: { id },
+            data: {
+              name: name?.trim() || existing.name,
+              activePageId: activePageId || existing.activePageId,
+              updatedAt: new Date(),
+            },
+          });
+        }
 
         // 2. Delete pages that were removed on the client
         await tx.page.deleteMany({

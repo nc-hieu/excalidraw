@@ -235,5 +235,17 @@
         background-color: var(--color-primary-darker, #5b57d1);
       }
     }
+
+    &--danger {
+      color: #e03131;
+      border-color: #ffc9c9;
+      background-color: #fff5f5;
+
+      &:hover {
+        background-color: #ffe3e3;
+        border-color: #ffa8a8;
+      }
+    }
   }
 }
+
