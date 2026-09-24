@@ -739,12 +739,15 @@ export const useDocumentsManager = (
   );
 
   const switchDocument = useCallback(
-    async (docId: string) => {
+    async (docId: string, targetPageId?: string) => {
       if (!excalidrawAPI) {
         return;
       }
       const current = currentDocRef.current;
       if (current && current.id === docId) {
+        if (targetPageId && targetPageId !== current.activePageId) {
+          await switchPage(targetPageId);
+        }
         return;
       }
 
@@ -793,6 +796,14 @@ export const useDocumentsManager = (
         return;
       }
 
+      if (targetPageId && targetDoc.pages.some((p) => p.id === targetPageId)) {
+        targetDoc = {
+          ...targetDoc,
+          activePageId: targetPageId,
+        };
+      }
+
+      await saveDocument(targetDoc);
       await setActiveDocumentId(targetDoc.id);
       currentDocRef.current = targetDoc;
       setCurrentDoc(targetDoc);
@@ -818,7 +829,22 @@ export const useDocumentsManager = (
       });
       excalidrawAPI.history.clear();
     },
-    [excalidrawAPI, refreshDocsList, setCurrentDoc],
+    [excalidrawAPI, refreshDocsList, setCurrentDoc, switchPage],
+  );
+
+  const getFullDocument = useCallback(
+    async (docId: string): Promise<ExcalidrawDocument | null> => {
+      const current = currentDocRef.current;
+      if (current && current.id === docId) {
+        return current;
+      }
+      let doc = await getDocument(docId);
+      if (!doc && getAuthToken()) {
+        doc = await getCloudDocument(docId);
+      }
+      return doc;
+    },
+    [],
   );
 
   const createDocument = useCallback(
@@ -1034,6 +1060,7 @@ export const useDocumentsManager = (
     deletePage,
     reorderPages,
     switchDocument,
+    getFullDocument,
     createDocument,
     renameDocument,
     duplicateDocument,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
 import { PageBar } from "../components/MultiPageManager/PageBar";
@@ -63,6 +63,7 @@ describe("MultiPage UI Components", () => {
     deletePage: vi.fn(),
     reorderPages: vi.fn(),
     switchDocument: vi.fn(),
+    getFullDocument: vi.fn().mockImplementation((id: string) => Promise.resolve(mockDoc)),
     createDocument: vi.fn(),
     renameDocument: vi.fn(),
     duplicateDocument: vi.fn(),
@@ -221,5 +222,55 @@ describe("MultiPage UI Components", () => {
     ).toBe(true);
 
     fireEvent.mouseUp(tabsContainer);
+  });
+
+  it("should switch to page gallery view when clicking Pages button in DocumentManagerModal", async () => {
+    const manager = createMockManager({ isDocModalOpen: true });
+    render(<DocumentManagerModal manager={manager as any} />);
+
+    // Click on the Pages button for Architecture Diagram
+    const pagesButtons = screen.getAllByTitle("View all pages in grid");
+    fireEvent.click(pagesButtons[0]);
+
+    // Should now be in the gallery view showing all pages
+    expect(screen.getByText("Back to drawings")).toBeDefined();
+    expect(screen.getByText("Page 1")).toBeDefined();
+    expect(screen.getByText("Page 2")).toBeDefined();
+    expect(screen.getByText("Active")).toBeDefined();
+  });
+
+  it("should switch to target page and close modal when clicking a page card in gallery", async () => {
+    const manager = createMockManager({ isDocModalOpen: true });
+    render(<DocumentManagerModal manager={manager as any} />);
+
+    // Enter gallery view
+    const pagesButtons = screen.getAllByTitle("View all pages in grid");
+    fireEvent.click(pagesButtons[0]);
+
+    // Click on Page 2 card
+    const page2Card = screen.getByTitle("Open Page 2");
+    fireEvent.click(page2Card);
+
+    await waitFor(() => {
+      expect(manager.switchDocument).toHaveBeenCalledWith("doc-1", "p-2");
+      expect(manager.setIsDocModalOpen).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it("should return to drawings list when clicking Back button in gallery view", async () => {
+    const manager = createMockManager({ isDocModalOpen: true });
+    render(<DocumentManagerModal manager={manager as any} />);
+
+    // Enter gallery view
+    const pagesButtons = screen.getAllByTitle("View all pages in grid");
+    fireEvent.click(pagesButtons[0]);
+
+    expect(screen.getByText("Back to drawings")).toBeDefined();
+
+    // Click Back button
+    fireEvent.click(screen.getByText("Back to drawings"));
+
+    // Should return to drawings list
+    expect(screen.getByPlaceholderText("Search drawings...")).toBeDefined();
   });
 });

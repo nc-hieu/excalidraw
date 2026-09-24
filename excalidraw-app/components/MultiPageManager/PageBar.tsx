@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import clsx from "clsx";
 
 import "./PageBar.scss";
+import { PageThumbnail } from "./PageThumbnail";
 
 import type { useDocumentsManager } from "./useDocumentsManager";
 import type { ExcalidrawPage } from "../../data/documentsDB";
@@ -162,6 +163,11 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [pageToDelete, setPageToDelete] = useState<ExcalidrawPage | null>(null);
+  const [hoveredPage, setHoveredPage] = useState<{
+    page: ExcalidrawPage;
+    rect: DOMRect;
+  } | null>(null);
+  const hoverTimeoutRef = useRef<any>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +248,8 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
 
   // Horizontal wheel scroll listener (converts vertical wheel deltaY to horizontal scroll)
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    clearTimeout(hoverTimeoutRef.current);
+    setHoveredPage(null);
     const el = tabsRef.current;
     if (!el) {
       return;
@@ -254,6 +262,8 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
 
   // Drag to scroll handlers for desktop
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    clearTimeout(hoverTimeoutRef.current);
+    setHoveredPage(null);
     // Only drag with primary mouse button and not on menu buttons or input
     if (e.button !== 0) {
       return;
@@ -436,7 +446,32 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                 className={clsx("excalidraw-page-bar__tab", {
                   "excalidraw-page-bar__tab--active": isActive,
                 })}
+                onMouseEnter={(e) => {
+                  if (
+                    isDragging ||
+                    isEditing ||
+                    editingPageId ||
+                    dropdownState ||
+                    ("ontouchstart" in window && window.innerWidth <= 1024)
+                  ) {
+                    return;
+                  }
+                  const target = e.currentTarget as HTMLElement;
+                  clearTimeout(hoverTimeoutRef.current);
+                  hoverTimeoutRef.current = setTimeout(() => {
+                    if (!dragInfoRef.current.isDown && !dragInfoRef.current.hasMoved) {
+                      const rect = target.getBoundingClientRect();
+                      setHoveredPage({ page, rect });
+                    }
+                  }, 180);
+                }}
+                onMouseLeave={() => {
+                  clearTimeout(hoverTimeoutRef.current);
+                  setHoveredPage(null);
+                }}
                 onClick={() => {
+                  clearTimeout(hoverTimeoutRef.current);
+                  setHoveredPage(null);
                   if (dragInfoRef.current.hasMoved) {
                     return;
                   }
@@ -445,6 +480,8 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                   }
                 }}
                 onDoubleClick={(e) => {
+                  clearTimeout(hoverTimeoutRef.current);
+                  setHoveredPage(null);
                   e.stopPropagation();
                   handleStartRename(page.id, page.name);
                 }}
@@ -666,6 +703,30 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
                 </button>
               </div>
             </div>
+          </div>,
+          doc.body,
+        )}
+
+      {/* Desktop Hover Thumbnail Preview */}
+      {hoveredPage &&
+        !dropdownState &&
+        !isDragging &&
+        !editingPageId &&
+        createPortal(
+          <div
+            className="excalidraw-page-preview-popover"
+            style={{
+              left: hoveredPage.rect.left + hoveredPage.rect.width / 2,
+              top: hoveredPage.rect.top - 8,
+            }}
+          >
+            <div className="excalidraw-page-preview-popover__thumb">
+              <PageThumbnail page={hoveredPage.page} maxWidthOrHeight={180} />
+            </div>
+            <div className="excalidraw-page-preview-popover__title">
+              {hoveredPage.page.name}
+            </div>
+            <div className="excalidraw-page-preview-popover__arrow" />
           </div>,
           doc.body,
         )}
