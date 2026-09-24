@@ -165,6 +165,161 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragInfoRef = useRef<{
+    isDown: boolean;
+    startX: number;
+    scrollLeft: number;
+    hasMoved: boolean;
+  }>({
+    isDown: false,
+    startX: 0,
+    scrollLeft: 0,
+    hasMoved: false,
+  });
+
+  // Check scroll overflow to toggle arrow buttons
+  const updateScrollButtons = () => {
+    const el = tabsRef.current;
+    if (el) {
+      const atStart = el.scrollLeft <= 2;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+      setCanScrollLeft(!atStart);
+      setCanScrollRight(!atEnd);
+    }
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+    const el = tabsRef.current;
+    if (!el) {
+      return;
+    }
+
+    const handleScroll = () => {
+      updateScrollButtons();
+    };
+
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateScrollButtons();
+      });
+      resizeObserver.observe(el);
+    }
+
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [currentDoc?.pages.length]);
+
+  // Auto-scroll active tab into view
+  useEffect(() => {
+    if (!currentDoc?.activePageId || !tabsRef.current) {
+      return;
+    }
+    const activeTabEl = tabsRef.current.querySelector(
+      ".excalidraw-page-bar__tab--active",
+    ) as HTMLElement | null;
+    if (activeTabEl && typeof activeTabEl.scrollIntoView === "function") {
+      activeTabEl.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+    // Update scroll buttons after smooth scroll
+    setTimeout(updateScrollButtons, 300);
+  }, [currentDoc?.activePageId]);
+
+  // Horizontal wheel scroll listener (converts vertical wheel deltaY to horizontal scroll)
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = tabsRef.current;
+    if (!el) {
+      return;
+    }
+    if (e.deltaY !== 0) {
+      el.scrollLeft += e.deltaY;
+      e.stopPropagation();
+    }
+  };
+
+  // Drag to scroll handlers for desktop
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only drag with primary mouse button and not on menu buttons or input
+    if (e.button !== 0) {
+      return;
+    }
+    const target = e.target as HTMLElement;
+    if (
+      target.closest(".excalidraw-page-bar__tab__menu-btn") ||
+      target.closest("input")
+    ) {
+      return;
+    }
+
+    const el = tabsRef.current;
+    if (!el) {
+      return;
+    }
+
+    const clientX = e.clientX ?? e.pageX ?? 0;
+    const offsetLeft = el.getBoundingClientRect ? el.getBoundingClientRect().left : el.offsetLeft || 0;
+    dragInfoRef.current = {
+      isDown: true,
+      startX: clientX - offsetLeft,
+      scrollLeft: el.scrollLeft,
+      hasMoved: false,
+    };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragInfoRef.current.isDown) {
+      return;
+    }
+    const el = tabsRef.current;
+    if (!el) {
+      return;
+    }
+
+    const clientX = e.clientX ?? e.pageX ?? 0;
+    const offsetLeft = el.getBoundingClientRect ? el.getBoundingClientRect().left : el.offsetLeft || 0;
+    const x = clientX - offsetLeft;
+    const walk = x - dragInfoRef.current.startX;
+    if (Math.abs(walk) > 4) {
+      dragInfoRef.current.hasMoved = true;
+      setIsDragging(true);
+      el.scrollLeft = dragInfoRef.current.scrollLeft - walk;
+    }
+  };
+
+  const handleMouseUpOrLeave = () => {
+    dragInfoRef.current.isDown = false;
+    setTimeout(() => {
+      setIsDragging(false);
+      dragInfoRef.current.hasMoved = false;
+    }, 50);
+  };
+
+  const scrollLeftBy = () => {
+    if (tabsRef.current) {
+      tabsRef.current.scrollBy({ left: -140, behavior: "smooth" });
+    }
+  };
+
+  const scrollRightBy = () => {
+    if (tabsRef.current) {
+      tabsRef.current.scrollBy({ left: 140, behavior: "smooth" });
+    }
+  };
 
   // Close dropdown on click outside adhering to app.ownerDocument guideline
   useEffect(() => {
@@ -246,73 +401,110 @@ export const PageBar: React.FC<PageBarProps> = ({ manager }) => {
 
       <div className="excalidraw-page-bar__divider" />
 
-      {/* Pages Tabs */}
-      <div className="excalidraw-page-bar__tabs-container">
-        {currentDoc.pages.map((page, index) => {
-          const isActive = page.id === currentDoc.activePageId;
-          const isEditing = page.id === editingPageId;
-          const isDropdownOpen = dropdownState?.page.id === page.id;
+      {/* Scrollable Tabs Wrapper */}
+      <div className="excalidraw-page-bar__scroll-wrapper">
+        {canScrollLeft && (
+          <button
+            type="button"
+            className="excalidraw-page-bar__scroll-btn excalidraw-page-bar__scroll-btn--left"
+            title="Scroll left"
+            onClick={scrollLeftBy}
+          >
+            <ArrowLeftIcon />
+          </button>
+        )}
 
-          return (
-            <div
-              key={page.id}
-              className={clsx("excalidraw-page-bar__tab", {
-                "excalidraw-page-bar__tab--active": isActive,
-              })}
-              onClick={() => {
-                if (!isActive && !isEditing) {
-                  switchPage(page.id);
-                }
-              }}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                handleStartRename(page.id, page.name);
-              }}
-              title={
-                isActive
-                  ? `Drawing: ${page.name} (Double-click to rename)`
-                  : `Switch to: ${page.name}`
-              }
-            >
-              {isEditing ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className="excalidraw-page-bar__tab__input"
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={handleFinishRename}
-                  onKeyDown={handleKeyDown}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span className="excalidraw-page-bar__tab__name">
-                  {page.name}
-                </span>
-              )}
+        <div
+          ref={tabsRef}
+          className={clsx("excalidraw-page-bar__tabs-container", {
+            "excalidraw-page-bar__tabs-container--dragging": isDragging,
+          })}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+        >
+          {currentDoc.pages.map((page, index) => {
+            const isActive = page.id === currentDoc.activePageId;
+            const isEditing = page.id === editingPageId;
+            const isDropdownOpen = dropdownState?.page.id === page.id;
 
-              {/* Tab Menu Button */}
-              <button
-                type="button"
-                className="excalidraw-page-bar__tab__menu-btn"
-                title="Page options"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isDropdownOpen) {
-                    setDropdownState(null);
-                  } else {
-                    const rect = (
-                      e.currentTarget as HTMLElement
-                    ).getBoundingClientRect();
-                    setDropdownState({ page, index, rect });
+            return (
+              <div
+                key={page.id}
+                className={clsx("excalidraw-page-bar__tab", {
+                  "excalidraw-page-bar__tab--active": isActive,
+                })}
+                onClick={() => {
+                  if (dragInfoRef.current.hasMoved) {
+                    return;
+                  }
+                  if (!isActive && !isEditing) {
+                    switchPage(page.id);
                   }
                 }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handleStartRename(page.id, page.name);
+                }}
+                title={
+                  isActive
+                    ? `Drawing: ${page.name} (Double-click to rename)`
+                    : `Switch to: ${page.name}`
+                }
               >
-                <DotsIcon />
-              </button>
-            </div>
-          );
-        })}
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className="excalidraw-page-bar__tab__input"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    onBlur={handleFinishRename}
+                    onKeyDown={handleKeyDown}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span className="excalidraw-page-bar__tab__name">
+                    {page.name}
+                  </span>
+                )}
+
+                {/* Tab Menu Button */}
+                <button
+                  type="button"
+                  className="excalidraw-page-bar__tab__menu-btn"
+                  title="Page options"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isDropdownOpen) {
+                      setDropdownState(null);
+                    } else {
+                      const rect = (
+                        e.currentTarget as HTMLElement
+                      ).getBoundingClientRect();
+                      setDropdownState({ page, index, rect });
+                    }
+                  }}
+                >
+                  <DotsIcon />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {canScrollRight && (
+          <button
+            type="button"
+            className="excalidraw-page-bar__scroll-btn excalidraw-page-bar__scroll-btn--right"
+            title="Scroll right"
+            onClick={scrollRightBy}
+          >
+            <ArrowRightIcon />
+          </button>
+        )}
       </div>
 
       {/* Add Page Button */}

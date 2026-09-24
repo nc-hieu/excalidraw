@@ -12,16 +12,31 @@
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: var(--border-radius-lg, 12px);
   box-shadow: var(--shadow-island, 0 4px 12px rgba(0, 0, 0, 0.08));
-  max-width: calc(100vw - 340px);
+  // Desktop (> 1024px): Clear undo/redo/zoom cluster (~240px) with generous ~50px padding on both sides
+  max-width: calc(100vw - 600px);
   overflow: visible;
   user-select: none;
   font-family: var(--ui-font, Assistant, system-ui, sans-serif);
   font-size: 0.85rem;
   color: var(--text-primary-color, #1b1b1f);
+  transition: all 0.2s ease;
 
-  @media (max-width: 768px) {
-    bottom: 60px;
-    max-width: calc(100vw - 40px);
+  // Tablet (601px - 1024px): Clear undo/redo/zoom with min-width fallback
+  @media (max-width: 1024px) {
+    bottom: 14px;
+    max-width: calc(100vw - 520px);
+    min-width: 220px;
+    gap: 4px;
+    padding: 3px 6px;
+  }
+
+  // Mobile (<= 600px): Sit comfortably above the mobile bottom toolbar
+  @media (max-width: 600px) {
+    bottom: 64px;
+    max-width: calc(100vw - 16px);
+    gap: 3px;
+    padding: 2px 5px;
+    font-size: 0.8rem;
   }
 
   &__doc-btn {
@@ -37,7 +52,19 @@
     color: var(--text-primary-color, #1b1b1f);
     transition: all 0.15s ease;
     white-space: nowrap;
-    max-width: 150px;
+    max-width: 160px;
+    flex-shrink: 0;
+
+    @media (max-width: 1024px) {
+      max-width: 120px;
+      padding: 3px 8px;
+    }
+
+    @media (max-width: 600px) {
+      max-width: 85px;
+      padding: 3px 6px;
+      gap: 4px;
+    }
 
     span {
       overflow: hidden;
@@ -56,6 +83,50 @@
     height: 20px;
     background-color: var(--border-color, #e0e0e0);
     margin: 0 2px;
+    flex-shrink: 0;
+
+    @media (max-width: 600px) {
+      height: 16px;
+      margin: 0 1px;
+    }
+  }
+
+  &__scroll-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__scroll-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 24px;
+    padding: 0;
+    background: var(--color-gray-10, rgba(0, 0, 0, 0.04));
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-primary-color, #555);
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    z-index: 2;
+
+    &:hover {
+      background: var(--button-hover-bg, rgba(0, 0, 0, 0.1));
+      color: var(--color-primary, #1971c2);
+    }
+
+    &--left {
+      margin-right: 2px;
+    }
+
+    &--right {
+      margin-left: 2px;
+    }
   }
 
   &__tabs-container {
@@ -65,8 +136,22 @@
     overflow-x: auto;
     max-width: 100%;
     scrollbar-width: none;
+    cursor: grab;
+    scroll-behavior: smooth;
+
     &::-webkit-scrollbar {
       display: none;
+    }
+
+    &--dragging {
+      cursor: grabbing;
+      user-select: none;
+      scroll-behavior: auto;
+
+      * {
+        cursor: grabbing !important;
+        pointer-events: none;
+      }
     }
   }
 
@@ -85,6 +170,12 @@
     transition: all 0.15s ease;
     white-space: nowrap;
 
+    @media (max-width: 600px) {
+      padding: 3px 6px;
+      gap: 3px;
+      font-size: 0.8rem;
+    }
+
     &:hover {
       background: var(--button-hover-bg, rgba(0, 0, 0, 0.05));
     }
@@ -97,10 +188,18 @@
     }
 
     &__name {
-      max-width: 120px;
+      max-width: 130px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      @media (max-width: 1024px) {
+        max-width: 110px;
+      }
+
+      @media (max-width: 600px) {
+        max-width: 90px;
+      }
     }
 
     &__input {
@@ -113,6 +212,11 @@
       color: inherit;
       outline: none;
       width: 90px;
+
+      @media (max-width: 600px) {
+        width: 75px;
+        font-size: 0.78rem;
+      }
     }
 
     &__menu-btn {
@@ -144,9 +248,15 @@
     border-radius: var(--border-radius-md, 8px);
     background: transparent;
     border: 1px dashed var(--border-color, #ccc);
+    flex-shrink: 0;
     cursor: pointer;
     color: var(--text-primary-color, #555);
     transition: all 0.15s ease;
+
+    @media (max-width: 600px) {
+      width: 24px;
+      height: 24px;
+    }
 
     &:hover {
       background: var(--button-hover-bg, rgba(0, 0, 0, 0.05));

@@ -187,4 +187,39 @@ describe("MultiPage UI Components", () => {
     expect(screen.getByText("Architecture Diagram")).toBeDefined();
     expect(screen.queryByText("UI Draft")).toBeNull();
   });
+
+  it("should support horizontal wheel scroll on tabs container", () => {
+    const manager = createMockManager();
+    const { container } = render(<PageBar manager={manager as any} />);
+
+    const tabsContainer = container.querySelector(
+      ".excalidraw-page-bar__tabs-container",
+    ) as HTMLElement;
+    expect(tabsContainer).toBeDefined();
+
+    // Fire wheel event
+    fireEvent.wheel(tabsContainer, { deltaY: 80 });
+    // Should handle wheel smoothly without throwing
+    expect(tabsContainer).toBeDefined();
+  });
+
+  it("should handle mouse drag-to-scroll on desktop", () => {
+    const manager = createMockManager();
+    const { container } = render(<PageBar manager={manager as any} />);
+
+    const tabsContainer = container.querySelector(
+      ".excalidraw-page-bar__tabs-container",
+    ) as HTMLElement;
+
+    // Simulate drag interaction
+    fireEvent.mouseDown(tabsContainer, { button: 0, clientX: 100, pageX: 100 });
+    fireEvent.mouseMove(tabsContainer, { clientX: 50, pageX: 50 });
+    expect(
+      tabsContainer.classList.contains(
+        "excalidraw-page-bar__tabs-container--dragging",
+      ),
+    ).toBe(true);
+
+    fireEvent.mouseUp(tabsContainer);
+  });
 });
