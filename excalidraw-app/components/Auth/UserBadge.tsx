@@ -224,7 +224,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
           onClick={() => setIsAuthModalOpen(true)}
         >
           <UserIcon />
-          <span>Sign in</span>
+          <span className="excalidraw-auth-btn__text">Sign in</span>
         </button>
       )}
 

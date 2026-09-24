@@ -972,16 +972,12 @@ const ExcalidrawWrapper = () => {
         theme={editorTheme}
         onThemeChange={setAppTheme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile) {
-            return null;
-          }
-
           return (
             <div className="excalidraw-ui-top-right">
-
-
-              {collabError.message && <CollabError collabError={collabError} />}
-              {collabAPI && !isCollabDisabled && (
+              {!isMobile && collabError.message && (
+                <CollabError collabError={collabError} />
+              )}
+              {!isMobile && collabAPI && !isCollabDisabled && (
                 <LiveCollaborationTrigger
                   isCollaborating={isCollaborating}
                   onSelect={() =>

@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 import { Provider, appJotaiStore } from "../app-jotai";
 import { AuthModal } from "../components/Auth/AuthModal";
-import { isAuthModalOpenAtom } from "../components/Auth/authState";
+import { UserBadge } from "../components/Auth/UserBadge";
+import { isAuthModalOpenAtom, currentUserAtom } from "../components/Auth/authState";
 import * as backendAPI from "../data/backendAPI";
 
 describe("AuthModal component", () => {
@@ -102,3 +103,44 @@ describe("AuthModal component", () => {
     });
   });
 });
+
+describe("UserBadge component", () => {
+  beforeEach(() => {
+    vi.spyOn(backendAPI, "getMe").mockResolvedValue(null);
+    appJotaiStore.set(currentUserAtom, null);
+  });
+
+  it("should render Sign in button with dedicated text span for responsive hiding", () => {
+    const { container } = render(
+      <Provider store={appJotaiStore}>
+        <UserBadge />
+      </Provider>,
+    );
+
+    const signInBtn = container.querySelector(".excalidraw-auth-btn");
+    expect(signInBtn).toBeDefined();
+
+    const textSpan = container.querySelector(".excalidraw-auth-btn__text");
+    expect(textSpan).toBeDefined();
+    expect(textSpan?.textContent).toBe("Sign in");
+  });
+
+  it("should render user name in dedicated span when logged in", () => {
+    appJotaiStore.set(currentUserAtom, {
+      id: "u_1",
+      email: "alice@example.com",
+      name: "Alice Wonderland",
+    });
+
+    const { container } = render(
+      <Provider store={appJotaiStore}>
+        <UserBadge />
+      </Provider>,
+    );
+
+    const nameSpan = container.querySelector(".excalidraw-auth-btn__name");
+    expect(nameSpan).toBeDefined();
+    expect(nameSpan?.textContent).toBe("Alice Wonderland");
+  });
+});
+

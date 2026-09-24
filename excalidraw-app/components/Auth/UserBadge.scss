@@ -89,6 +89,28 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  &__text {
+    white-space: nowrap;
+  }
+
+  // Tablet & Mobile (<= 1024px): Icon-only compact 32x32 button
+  @media (max-width: 1024px) {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+
+    .excalidraw-auth-btn__name,
+    .excalidraw-auth-btn__text {
+      display: none;
+    }
+
+    &__avatar {
+      width: 24px;
+      height: 24px;
+    }
+  }
 }
 
 .user-badge-dropdown {
@@ -253,6 +275,13 @@
         border-color: #ffa8a8;
       }
     }
+  }
+}
+
+@media (max-width: 480px) {
+  .user-badge-dropdown {
+    right: -4px;
+    max-width: calc(100vw - 20px);
   }
 }
 
